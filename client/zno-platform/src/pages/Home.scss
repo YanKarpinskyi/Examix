@@ -1,0 +1,227 @@
+@import '../styles//variables';
+
+#root {
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: #fff;
+  color: #111;
+  line-height: 1.5;
+  width: 100%;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #f0effe;
+  text-align: center;
+}
+
+.headerLinks {
+  display: flex;
+  gap: 20px;
+}
+
+.headerLinks a {
+  font-size: 18px;
+  color: #555;
+  text-decoration: none;
+  font-size: 103%;
+}
+
+.headerLinks a:hover {
+  font-size: 18px;
+  color: #313131;
+  text-decoration: none;
+  font-size: 103%;
+  cursor: pointer;
+}
+
+.authButtons {
+  display: flex;
+  gap: 6%;
+  margin: 0 auto;
+}
+
+.authButtons {
+  font-size: 12pt;
+  border: none;
+  border-radius: 5px;
+  height: 4vh;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.authBtn {
+  display: inline-flex;    
+  align-items: center; 
+  justify-content: center;
+  border-radius: 5px;
+  text-decoration: none;
+  color: #111;
+  transition: 0.2s;
+  background-color: $auth-btn-bg;
+  height: 4vh;
+}
+
+#login {
+  width: 15vw;
+}
+
+#signup {
+  width: 30vw;
+}
+
+#login:hover , #signup:hover {
+  background-color: darken($auth-btn-bg, 20%);
+  color: #fafafa;
+}
+
+#login:active , #signup:active {
+  background-color: darken($auth-btn-bg, 30%);
+  color: #fafafa;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #3649a4;
+}
+
+.startBtn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1.5px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: 500;
+  padding: 10px 20px;
+  max-width: 300px;
+  margin: 0 auto;
+  margin-top: 3%;
+  background-color: $start-btn-bg;
+  color: #ffffff;
+  font-size: larger;
+  font-weight: 600;
+}
+
+.startBtn:hover {
+  background-color: darken($start-btn-bg, 20%);
+}
+
+h2 {
+  margin-bottom: 10%;
+  font-size: 20pt;
+  font-weight: 700;
+  color: #00157e;
+}
+
+.facts {
+  display: flex;
+  gap: 24px;
+  margin: 10% auto;
+}
+
+.factsNumber {
+  font-size: 24px;
+  font-weight: 700;
+  color: #6C47FF;
+}
+
+.factsDescr {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: 1fr; 
+  gap: 16px;
+  padding: 20px;
+}
+
+.feature {
+  padding: 20px;
+  border-radius: 14px;
+  border: 1.5px solid #f0effe;
+  background: #faf9ff;
+}
+
+.featureImg {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+}
+
+#checkFeature {
+  width: 125px;
+  height: 125px;
+  margin: -30px auto;
+}
+
+@media (min-width: 768px) {
+  header {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 14px 40px;
+  }
+
+  h1 {
+    font-size: 42px;
+  }
+
+  .authButtons {
+    margin-right: 0;
+  }
+
+  .featuresGrid {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px;
+  }
+
+  .startBtn {
+    width: auto;
+  }
+
+  .facts {
+    flex-direction: row;
+    justify-content: center;
+  }
+  .facts > div {
+    padding: 0 30px;
+    border-right: 1px solid #e5e0ff;
+  }
+  .facts > div:last-child {
+    border-right: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .authButtons {
+    width: 32vw;
+  }
+}
+
+@media (min-width: 1100px) {
+  .authButtons {
+    width: 22vw;
+  }
+}
+

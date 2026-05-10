@@ -1,0 +1,73 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../services/supabaseClient';
+import './Dashboard.scss';
+
+interface Subject {
+      id: string;
+      name: string;
+      description: string;
+}
+
+function Dashboard() {
+  const navigate = useNavigate();
+
+  const { user, logout } = useAuth();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchSubjects() {
+            try {
+                const { data, error } = await supabase
+                    .from('subjects')
+                    .select('*');
+
+                if (error) {
+                    console.error("Supabase error:", error.message);
+                    return;
+                }
+                
+                setSubjects(data || []);
+            } catch (err) {
+                console.error("Помилка завантаження предметів:", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchSubjects();
+  }, []);
+
+  return (
+    <div className="dashboard-page">
+        <header className="dashboard-header">
+            <div className="user-info">
+                <h1>Вітаємо, {user?.username || user?.email}!</h1>
+                <p>Обери предмет, щоб почати підготовку</p>
+            </div>
+            <button onClick={logout} className="logout-btn">Вийти</button>
+        </header>
+
+        <main className="subjects-container">
+            {loading ? (
+                <p>Завантаження предметів...</p>
+            ) : (
+                <div className="subjects-grid">
+                    {subjects.map((subject) => (
+                        <div key={subject.id} className="subject-card" onClick={() => navigate(`/subject/${subject.id}`)}>
+                            <div className="subject-icon">📚</div>
+                            <h3>{subject.name}</h3>
+                            <p>{subject.description}</p>
+                            <button className="select-subject-btn">Готуватися</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </main>
+    </div>
+  );
+}
+
+export default Dashboard;
