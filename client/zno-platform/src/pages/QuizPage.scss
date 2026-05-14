@@ -1,0 +1,317 @@
+@import "../styles/variables";
+@import "../styles/mixins";
+
+:root {
+    --quiz-bg:          #0f1117;
+    --quiz-surface:     #1a1d27;
+    --quiz-surface-2:   #22263a;
+    --quiz-border:      rgba(255, 255, 255, 0.07);
+    --quiz-accent:      #c88f6e;
+    --quiz-accent-dim:  rgba(200, 169, 110, 0.15);
+    --quiz-text:        #e8e6e0;
+    --quiz-text-muted:  #7a7a8c;
+    --quiz-danger:      #e07070;
+    --quiz-success:     #6ecfa0;
+    --quiz-radius:      18px;
+    --quiz-radius-sm:   10px;
+}
+
+// ─── Layout ───────────────────────────────────────────────────
+.quiz-container {
+    height: 100vh;      // ← або 100% якщо батько вже має висоту
+    overflow: visible;   // вже є — добре  
+    background: var(--quiz-bg);
+    color: var(--quiz-text);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "header"
+        "main"
+        "footer";
+    padding: 24px 20px;
+    gap: 24px;
+    box-sizing: border-box;
+    width: 100%;
+
+    // Декоративний фоновий орнамент
+    &::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 60% 40% at 20% 10%, rgba(200, 169, 110, 0.06) 0%, transparent 60%),
+            radial-gradient(ellipse 40% 60% at 80% 90%, rgba(110, 130, 200, 0.05) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    > * { position: relative; z-index: 1; }
+
+    .back-btn {
+        background: #414769;
+        border: 1px solid var(--quiz-border);
+        color: var(--quiz-text-muted);
+        padding: 8px 16px;
+        border-radius: var(--quiz-radius-sm);
+        cursor: pointer;
+        // font-family: inherit;
+        transition: all 0.2s;
+        font-size: 1rem;
+    }
+
+    .back-btn:hover {
+        background: var(--quiz-danger); // Можна підсвітити червоним при ховері
+        color: white;
+        border-color: transparent;
+    }
+}
+
+// ─── Header ───────────────────────────────────────────────────
+.quiz-header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.progress-bar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--quiz-text-muted);
+
+    .bar-bg {
+        width: 100%;
+        height: 4px;
+        background: var(--quiz-surface-2);
+        border-radius: 99px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--quiz-accent), #e8c98a);
+        border-radius: 99px;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 10px rgba(200, 169, 110, 0.5);
+    }
+}
+
+.timer {
+    flex-shrink: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--quiz-accent);
+    background: var(--quiz-accent-dim);
+    border: 1px solid rgba(200, 169, 110, 0.3);
+    border-radius: var(--quiz-radius-sm);
+    padding: 8px 16px;
+    min-width: 80px;
+    text-align: center;
+    transition: color 0.3s, background 0.3s;
+
+    // Небезпечний залишок часу (можна додати клас .danger через JS)
+    &.danger {
+        color: var(--quiz-danger);
+        background: rgba(224, 112, 112, 0.12);
+        border-color: rgba(224, 112, 112, 0.35);
+        animation: pulse-danger 1s ease-in-out infinite;
+    }
+}
+
+@keyframes pulse-danger {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+}
+
+// ─── Question Card ────────────────────────────────────────────
+.question-card {
+    grid-area: main;
+    background: var(--quiz-surface);
+    border: 1px solid var(--quiz-border);
+    border-radius: var(--quiz-radius);
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+    animation: slide-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+    min-height: 0;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: var(--quiz-surface-2);
+        border-radius: 10px;
+    }
+
+    // Тонка золота лінія зверху
+    &::before {
+        content: '';
+        display: block;
+        width: 48px;
+        height: 2px;
+        background: var(--quiz-accent);
+        border-radius: 99px;
+        flex-shrink: 0;
+    }
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.q-image {
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    border-radius: var(--quiz-radius-sm);
+    background: var(--quiz-surface-2);
+    border: 1px solid var(--quiz-border);
+}
+
+// ─── Footer ───────────────────────────────────────────────────
+.quiz-footer {
+    grid-area: footer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 10px;
+
+    button {
+        font-family: inherit;
+        font-size: 0.9rem;
+        letter-spacing: 0.04em;
+        border: 1px solid var(--quiz-border);
+        border-radius: var(--quiz-radius-sm);
+        padding: 12px 24px;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s, transform 0.15s, opacity 0.2s;
+        background: var(--quiz-surface);
+        color: var(--quiz-text);
+
+        &:hover:not(:disabled) {
+            background: var(--quiz-surface-2);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        &:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        // "Назад" — звичайна кнопка (перша)
+        &:first-child {
+            flex: 0 0 auto;
+        }
+
+        // "Позначити" — по центру, нейтральна
+        &:nth-child(2) {
+            flex: 0 0 auto;
+            color: var(--quiz-text-muted);
+            font-size: 0.85rem;
+
+            &:hover:not(:disabled) {
+                color: var(--quiz-accent);
+                border-color: rgba(200, 169, 110, 0.3);
+                background: var(--quiz-accent-dim);
+            }
+        }
+
+        // "Далі / Завершити" — акцентна кнопка
+        &:last-child {
+            flex: 0 0 auto;
+            background: var(--quiz-accent);
+            color: #0f1117;
+            border-color: transparent;
+            font-weight: 700;
+
+            &:hover:not(:disabled) {
+                background: #d9b87a;
+                // transform: translateY(-2px);
+                // box-shadow: 0 6px 20px rgba(200, 169, 110, 0.35);
+            }
+        }
+    }
+}
+
+// ─── Завантаження ─────────────────────────────────────────────
+.quiz-loading {
+    min-height: 100vh;
+    background: var(--quiz-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--quiz-text-muted);
+    font-family: 'Georgia', serif;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    gap: 12px;
+
+    &::before {
+        content: '';
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--quiz-border);
+        border-top-color: var(--quiz-accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+// ─── Media Queries ────────────────────────────────────────────
+
+@media (min-width: 600px) {
+    .quiz-container {
+        padding: 32px 40px;
+    }
+
+    .question-card {
+        padding: 40px 44px;
+    }
+
+    .quiz-footer button {
+        padding: 13px 32px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .quiz-container {
+        margin: 0 auto;
+        padding: 40px 0;
+    }
+
+    .question-card {
+        padding: 48px 52px;
+    }
+
+    .q-image {
+        max-height: 340px;
+    }
+}

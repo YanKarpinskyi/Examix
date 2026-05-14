@@ -1,9 +1,9 @@
 export type QuestionType =
     | "single"
     | "multiple"
-    | "match"
+    | "matching"
     | "order"
-    | "open";
+    | "sequense";
 
 export interface AnswerOption {
     id: string;

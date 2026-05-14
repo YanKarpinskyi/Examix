@@ -1,5 +1,5 @@
-import { UserDTO } from "./user";
-import { TestDTO } from "./test";
+import type { UserDTO } from "./user";
+import type { TestDTO } from "./test";
 
 export interface LoginRequest {
     email: string;

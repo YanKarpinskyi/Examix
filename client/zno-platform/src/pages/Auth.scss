@@ -26,16 +26,19 @@
     margin-bottom: 24px;
 
     .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: $primary-purple;
-      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 35px;
+      height: 35px;
     }
   }
 
     h2 {
       font-size: 1.2rem;
       color: #000000;
+      margin-bottom: 3px;         
+      line-height: 1;    
     }
 
   .auth-titles {
@@ -116,12 +119,19 @@
   input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid $border-color;
+    border: 1px solid #9ecdbe;
     border-radius: 12px;
     outline: none;
     transition: 0.3s;
-    background-color: #e0e0e0;
+    background-color: #d8d8d8;
     color: #000000;
+
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0px 1000px #d8d8d8 inset;
+        -webkit-text-fill-color: #000000;
+      }
   }
 
   .password-wrapper {
@@ -168,16 +178,17 @@ input:focus {
 .login-btn {
   width: 100%;
   padding: 14px;
-  background: #666666;
+  background: #2c4d94;
   border: 1px solid $border-color;
   border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: 0.3s;
+  color: #ffffff;
 
   &:hover {
-    background: #454545;
+    background: #1b3367;
     border-color: $primary-purple;
   }
 }

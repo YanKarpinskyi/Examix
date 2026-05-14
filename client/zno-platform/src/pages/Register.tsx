@@ -67,7 +67,10 @@ function Register() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h2>Examix</h2>
+          <div className="logo-icon">
+            <img src="/favicon.svg" alt="logo" width={35} style={{borderRadius: '10px'}}/>
+          </div>
+          <h2 style={{width: 'fitContent', verticalAlign: 'middle'}}>Examix</h2>
         </div>
         <div className="auth-titles">
           <h1>Створити акаунт</h1>

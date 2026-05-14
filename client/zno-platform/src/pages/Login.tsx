@@ -53,10 +53,10 @@ function Login() {
                 <div className="auth-header">
                     <div className="logo-placeholder">
                         <div className="logo-icon">
-                            <img src="" alt="logo" />
+                            <img src="/favicon.svg" alt="logo" width={35} style={{borderRadius: '10px'}}/>
                         </div>
                     </div>
-                    <h2>Examix</h2>
+                    <h2 style={{width: 'fitContent', verticalAlign: 'middle'}}>Examix</h2>
                 </div>
                 <div className="auth-titles">
                     <h2>З поверненням!</h2>
@@ -116,7 +116,7 @@ function Login() {
                             />
                             <span>Запам'ятати мене</span>
                         </label>
-                        <a href="#" className="forgot-password">Забули пароль?</a>
+                        <Link to="/forgot-password" className="forgot-password">Забули пароль?</Link>
                     </div>
                     <button type="submit" className="login-btn" disabled={loading}>
                         {loading ? "Вхід..." : "Увійти"}

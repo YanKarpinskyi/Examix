@@ -1,0 +1,56 @@
+.modal-overlay {
+  position: fixed;      /* Тепер вона прив'язана до вікна браузера, а не до контейнера */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0); /* Темніший фон краще для фокусу */
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;       /* Максимальний пріоритет */
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 1000000;
+
+    h2 { margin-top: 0; color: #333; }
+    p { color: #666; margin-bottom: 1.5rem; }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+
+            &.btn-primary {
+                background: #007bff;
+                color: white;
+                &:hover { background: #0056b3; }
+            }
+
+            &.btn-secondary {
+                background: #e9ecef;
+                color: #495057;
+                &:hover { background: #dee2e6; }
+            }
+        }
+    }
+}
