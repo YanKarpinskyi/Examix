@@ -1,4 +1,5 @@
-@import '../styles//variables';
+@use "sass:color";
+@use '../styles//variables';
 
 #root {
   width: 100%;
@@ -72,7 +73,7 @@ header {
   text-decoration: none;
   color: #111;
   transition: 0.2s;
-  background-color: $auth-btn-bg;
+  background-color: variables.$auth-btn-bg;
   height: 4vh;
 }
 
@@ -85,12 +86,12 @@ header {
 }
 
 #login:hover , #signup:hover {
-  background-color: darken($auth-btn-bg, 20%);
+  background-color: color.adjust(variables.$auth-btn-bg, $lightness: -20%);
   color: #fafafa;
 }
 
 #login:active , #signup:active {
-  background-color: darken($auth-btn-bg, 30%);
+  background-color: color.adjust(variables.$auth-btn-bg, $lightness: -30%);
   color: #fafafa;
 }
 
@@ -113,14 +114,14 @@ h1 {
   max-width: 300px;
   margin: 0 auto;
   margin-top: 3%;
-  background-color: $start-btn-bg;
+  background-color: variables.$start-btn-bg;
   color: #ffffff;
   font-size: larger;
   font-weight: 600;
 }
 
 .startBtn:hover {
-  background-color: darken($start-btn-bg, 20%);
+  background-color: color.adjust(variables.$start-btn-bg, $lightness: -20%);
 }
 
 h2 {

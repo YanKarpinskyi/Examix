@@ -1,4 +1,4 @@
-@import "../styles/variables";
+@use "../styles/variables";
 
 .mode-selection-grid {
     display: flex;
@@ -52,7 +52,7 @@
     .back-btn {
         background: none;
         border: none;
-        color: $primary-purple;
+        color: variables.$primary-purple;
         font-size: 0.95rem;
         font-weight: 600;
         cursor: pointer;
@@ -109,7 +109,7 @@
             transition: border-color 0.2s;
             
             &:focus {
-                border-color: $primary-purple;
+                border-color: variables.$primary-purple;
             }
         }
     }

@@ -42,8 +42,9 @@ export default function ForgotPassword() {
 
                 <form onSubmit={handleReset}>
                     <div className="input-group">
-                        <label>Email</label>
+                        <label htmlFor="reset-email">Email</label>
                         <input 
+                            id="reset-email" // маємо зв'язати id з htmlFor
                             type="email" 
                             placeholder="example@gmail.com" 
                             value={email} 
