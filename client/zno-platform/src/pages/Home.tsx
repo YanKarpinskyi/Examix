@@ -9,8 +9,6 @@ function Home() {
         <>
             <header>
                 <nav className="headerLinks">
-                    {/* <Link title='Про нас' to="/about" id="about">Увійти</Link>
-                    <Link title='Про нас' to="/contacts" id="contacts">Увійти</Link> */}
                     <a href="#">Про нас</a>
                     <a href="#">Контакти</a>
                 </nav>  

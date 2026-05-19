@@ -17,8 +17,6 @@ export default function ForgotPassword() {
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                // URL, куди користувач перейде з листа. 
-                // Важливо: додайте цей URL у білий список в Supabase Dashboard!
                 redirectTo: `${window.location.origin}/update-password`,
             });
 
@@ -44,7 +42,7 @@ export default function ForgotPassword() {
                     <div className="input-group">
                         <label htmlFor="reset-email">Email</label>
                         <input 
-                            id="reset-email" // маємо зв'язати id з htmlFor
+                            id="reset-email" 
                             type="email" 
                             placeholder="example@gmail.com" 
                             value={email} 

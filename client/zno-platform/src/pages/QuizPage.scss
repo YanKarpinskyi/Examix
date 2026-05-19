@@ -16,10 +16,9 @@
     --quiz-radius-sm:   10px;
 }
 
-// ─── Layout ───────────────────────────────────────────────────
 .quiz-container {
-    height: 100vh;      // ← або 100% якщо батько вже має висоту
-    overflow: visible;   // вже є — добре  
+    height: 100vh;      
+    overflow: visible;   
     background: var(--quiz-bg);
     color: var(--quiz-text);
     font-family: 'Georgia', 'Times New Roman', serif;
@@ -34,7 +33,6 @@
     box-sizing: border-box;
     width: 100%;
 
-    // Декоративний фоновий орнамент
     &::before {
         content: '';
         position: fixed;
@@ -55,19 +53,17 @@
         padding: 8px 16px;
         border-radius: var(--quiz-radius-sm);
         cursor: pointer;
-        // font-family: inherit;
         transition: all 0.2s;
         font-size: 1rem;
     }
 
     .back-btn:hover {
-        background: var(--quiz-danger); // Можна підсвітити червоним при ховері
+        background: var(--quiz-danger);
         color: white;
         border-color: transparent;
     }
 }
 
-// ─── Header ───────────────────────────────────────────────────
 .quiz-header {
     grid-area: header;
     display: flex;
@@ -118,7 +114,6 @@
     text-align: center;
     transition: color 0.3s, background 0.3s;
 
-    // Небезпечний залишок часу (можна додати клас .danger через JS)
     &.danger {
         color: var(--quiz-danger);
         background: rgba(224, 112, 112, 0.12);
@@ -132,7 +127,6 @@
     50%       { opacity: 0.6; }
 }
 
-// ─── Question Card ────────────────────────────────────────────
 .question-card {
     grid-area: main;
     background: var(--quiz-surface);
@@ -154,7 +148,6 @@
         border-radius: 10px;
     }
 
-    // Тонка золота лінія зверху
     &::before {
         content: '';
         display: block;
@@ -186,7 +179,6 @@
     border: 1px solid var(--quiz-border);
 }
 
-// ─── Footer ───────────────────────────────────────────────────
 .quiz-footer {
     grid-area: footer;
     display: flex;
@@ -222,12 +214,10 @@
             cursor: not-allowed;
         }
 
-        // "Назад" — звичайна кнопка (перша)
         &:first-child {
             flex: 0 0 auto;
         }
 
-        // "Позначити" — по центру, нейтральна
         &:nth-child(2) {
             flex: 0 0 auto;
             color: var(--quiz-text-muted);
@@ -240,7 +230,6 @@
             }
         }
 
-        // "Далі / Завершити" — акцентна кнопка
         &:last-child {
             flex: 0 0 auto;
             background: var(--quiz-accent);
@@ -250,14 +239,11 @@
 
             &:hover:not(:disabled) {
                 background: #d9b87a;
-                // transform: translateY(-2px);
-                // box-shadow: 0 6px 20px rgba(200, 169, 110, 0.35);
             }
         }
     }
 }
 
-// ─── Завантаження ─────────────────────────────────────────────
 .quiz-loading {
     min-height: 100vh;
     background: var(--quiz-bg);
@@ -284,8 +270,6 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-
-// ─── Media Queries ────────────────────────────────────────────
 
 @media (min-width: 600px) {
     .quiz-container {

@@ -20,7 +20,6 @@ export default function Header() {
             borderBottom: '1px solid #eee',
             backgroundColor: '#34fadc' 
         }}>
-            {/* Блок з логотипом */}
             <div 
                 onClick={() => navigate('/dashboard')} 
                 style={{ 

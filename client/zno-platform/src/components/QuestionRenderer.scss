@@ -16,7 +16,7 @@
 .correct-answer-info, .correct-matching-list, .correct-sequence {
     margin-top: 15px;
     padding: 10px;
-    background-color: rgba(76, 175, 80, 0.1); // Світло-зелений фон
+    background-color: rgba(76, 175, 80, 0.1); 
     border-left: 4px solid #4caf50;
     border-radius: 4px;
     font-size: 0.95rem;
@@ -26,7 +26,6 @@
     li { margin: 3px 0; }
 }
 
-// ─── Shared question heading ───────────────────────────────────
 .options-list,
 .matching-question,
 .short-answer,
@@ -49,7 +48,6 @@
     }
 }
 
-// ─── Single / Multiple choice ─────────────────────────────────
 .options-list {
     .opt-label {
         display: flex;
@@ -99,7 +97,6 @@
                 background: #c8a96e;
                 box-shadow: 0 0 0 3px rgba(200, 169, 110, 0.18);
 
-                // Checkmark via clip-path
                 &::after {
                     content: '';
                     display: block;
@@ -130,7 +127,6 @@
             color: #e8e6e0;
         }
 
-        // Правильна відповідь (showResult)
         &.correct {
             border-color: rgba(110, 207, 160, 0.4);
             background: rgba(110, 207, 160, 0.07);
@@ -146,7 +142,6 @@
     }
 }
 
-// ─── Matching ─────────────────────────────────────────────────
 .matching-question {
     .matching-container {
         display: flex;
@@ -223,7 +218,6 @@
     }
 }
 
-// ─── Short answer ─────────────────────────────────────────────
 .short-answer {
     .text-input {
         width: 100%;
@@ -248,7 +242,6 @@
     }
 }
 
-// ─── Open answer ──────────────────────────────────────────────
 .open-answer {
     .text-area {
         width: 100%;
@@ -276,7 +269,6 @@
     }
 }
 
-// ─── Sequence ─────────────────────────────────────────────────
 .sequence-answer {
     .sequence-list {
         display: flex;
@@ -352,7 +344,6 @@
     }
 }
 
-// ─── Error placeholder ────────────────────────────────────────
 .error-placeholder {
     padding: 20px;
     border: 1px dashed rgba(224, 112, 112, 0.3);
@@ -379,7 +370,6 @@
     }
 }
 
-// ─── Media Queries ────────────────────────────────────────────
 
 @media (min-width: 600px) {
     .matching-question {

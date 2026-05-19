@@ -38,7 +38,14 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     const { user, loading } = useAuth();
     
     if (loading) return <LoadingSpinner />;
-    if (user) return <Navigate to="/dashboard" replace />;
+    if (user) {
+        // Якщо зайшов вчитель або адмін — одразу кидаємо в панель вчителя
+        if (user.role === 'teacher' || user.role === 'admin') {
+            return <Navigate to="/teacher" replace />;
+        }
+        // Інакше — на учнівський дашборд
+        return <Navigate to="/dashboard" replace />;
+    }
     
     return <>{children}</>;
 };
@@ -52,23 +59,23 @@ const AppRouter = () => {
                     <Routes>
                         <Route path="/" element={<Home />} />
 
-                        {/* Публічні роути (недоступні для авторизованих) */}
                         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
                         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-                        {/* Роути без авторизації */}
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/update-password" element={<UpdatePassword />} />
 
-                        {/* Захищені роути для всіх авторизованих користувачів */}
                         <Route path="/dashboard" element={
-                            <ProtectedRoute><Dashboard /></ProtectedRoute>
+                            <ProtectedRoute allowedRoles={['student', 'admin']}>
+                                <Dashboard />
+                            </ProtectedRoute>
                         } />
                         <Route path="/subject/:id" element={
-                            <ProtectedRoute><SubjectDetail /></ProtectedRoute>
+                            <ProtectedRoute allowedRoles={['student', 'admin']}>
+                                <SubjectDetail />
+                            </ProtectedRoute>
                         } />
 
-                        {/* Quiz роути */}
                         <Route path="/topic/:topicId/quiz" element={
                             <ProtectedRoute><QuizPage /></ProtectedRoute>
                         } />
@@ -79,21 +86,18 @@ const AppRouter = () => {
                             <ProtectedRoute><QuizResultPage /></ProtectedRoute>
                         } />
 
-                        {/* Панель викладача (teacher + admin) */}
                         <Route path="/teacher/*" element={
                             <ProtectedRoute allowedRoles={['teacher', 'admin']}>
                                 <TeacherDashboard />
                             </ProtectedRoute>
                         } />
 
-                        {/* Панель адміністратора (тільки admin) */}
                         <Route path="/admin/*" element={
                             <ProtectedRoute allowedRoles={['admin']}>
                                 <AdminPanel />
                             </ProtectedRoute>
                         } />
 
-                        {/* 404 */}
                         <Route path="*" element={
                             <div className="p-10 text-center">
                                 <h1 className="text-2xl font-bold">Сторінку не знайдено</h1>

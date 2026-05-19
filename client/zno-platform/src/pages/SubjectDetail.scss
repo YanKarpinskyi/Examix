@@ -2,12 +2,12 @@
 
 .mode-selection-grid {
     display: flex;
-    flex-direction: column; // На мобільних — у стовпчик
+    flex-direction: column; 
     gap: 20px;
     margin-top: 24px;
 
     @media (min-width: 600px) {
-        flex-direction: row; // На планшетах/ПК — у рядок
+        flex-direction: row; 
     }
 
     .mode-card {
@@ -58,7 +58,7 @@
         cursor: pointer;
         padding: 0;
         transition: opacity 0.2s;
-        display: block; // Зробіть її блочною
+        display: block;  
         text-align: left;
         &:hover {
             opacity: 0.7;
@@ -193,8 +193,6 @@
         }
     }
 }
-
-// ─── Media Queries ────────────────────────────────────────────
 
 @media (min-width: 600px) {
     .subject-detail-page {

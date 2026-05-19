@@ -13,7 +13,7 @@ interface Subject {
 
 function Dashboard() {
     const navigate = useNavigate();
-    const { user } = useAuth(); // Залишаємо user, щоб знати, як звати студента
+    const { user } = useAuth();
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -41,7 +41,6 @@ function Dashboard() {
 
     return (
         <div className="dashboard-page">
-            {/* Оновлений заголовок без кнопки Вийти */}
             <header className="dashboard-header" style={{ marginBottom: '30px' }}>
                 <div className="user-info">
                     <h1>З поверненням, {user?.username || 'Студенте'}!</h1>

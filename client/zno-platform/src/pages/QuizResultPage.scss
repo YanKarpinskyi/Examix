@@ -1,7 +1,6 @@
 @use "../styles/variables";
 @use "../styles/mixins";
 
-// ─── Tokens ───────────────────────────────────────────────────
 :root {
     --res-bg:           #0f1117;
     --res-surface:      #1a1d27;
@@ -19,7 +18,6 @@
     --res-radius-sm:    12px;
 }
 
-// ─── Page ─────────────────────────────────────────────────────
 .result-page {
     min-height: 100vh;
     background: var(--res-bg);
@@ -43,7 +41,6 @@
     }
 }
 
-// ─── Card ─────────────────────────────────────────────────────
 .result-card {
     position: relative;
     z-index: 1;
@@ -85,7 +82,6 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
-// ─── Score ────────────────────────────────────────────────────
 .score-container {
     display: flex;
     flex-direction: column;
@@ -129,7 +125,6 @@
     margin: 0;
 }
 
-// ─── Review Section ───────────────────────────────────────────
 .review-section {
     display: flex;
     flex-direction: column;
@@ -213,7 +208,6 @@
 .user-ans strong    { color: var(--res-text-muted); }
 .correct-ans strong { color: var(--res-correct); }
 
-// ─── Button ───────────────────────────────────────────────────
 .dashboard-btn {
     align-self: center;
     font-family: inherit;
@@ -240,7 +234,6 @@
     }
 }
 
-// ─── Loading / Error states ───────────────────────────────────
 .result-page > div:not(.result-card) {
     position: relative;
     z-index: 1;
@@ -268,7 +261,6 @@
     to { transform: rotate(360deg); }
 }
 
-// ─── Media Queries ────────────────────────────────────────────
 
 @media (min-width: 600px) {
     .result-card {

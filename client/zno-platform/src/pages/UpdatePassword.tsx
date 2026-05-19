@@ -30,7 +30,6 @@ export default function UpdatePassword() {
         <h2>Встановіть новий пароль</h2>
         <form onSubmit={handleUpdate}>
           <div className="input-group">
-            {/* Використовуємо htmlFor для зв'язку з id інпута */}
             <label htmlFor="new-password">Новий пароль</label>
             <input
               id="new-password"
@@ -38,7 +37,7 @@ export default function UpdatePassword() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              minLength={6} // Додав мінімальну довжину для безпеки
+              minLength={6} 
             />
           </div>
           <button type="submit" className="login-btn" disabled={loading}>

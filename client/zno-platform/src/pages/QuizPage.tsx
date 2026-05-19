@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import QuestionRenderer from '../components/QuestionRenderer';
@@ -28,7 +28,6 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
     const [timeLeft, setTimeLeft] = useState(mode === 'nmt' ? 3600 : urlTime * 60);
 
     const NMT_CONFIGS: Record<string, any> = {
-    // Назва ключа має збігатися з назвою предмета в БД або його ID
     'Історія України': {
         single: 20,
         matching: 4,
@@ -57,7 +56,6 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
 
         try {
         if (mode === 'nmt') {
-            // 1. Отримуємо назву предмета та всі його теми
             const { data: subjectData } = await supabase
             .from('subjects')
             .select('name')
@@ -77,18 +75,18 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
             .select('*')
             .in('topic_id', topicIds);
 
+            console.log("ЗНАЙДЕНО ПИТАНЬ У БАЗІ ДЛЯ ЦЬОГО ПРЕДМЕТА:", allQuestions?.length);
+
             if (error) throw error;
 
             console.log("Subject Name:", subjectName)
 
-            // 3. Фільтрація за типами згідно з конфігурацією
             const config = NMT_CONFIGS[subjectName] || NMT_CONFIGS['default'];
             let finalPool: any[] = [];
 
             Object.keys(config).forEach(type => {
             const countNeeded = config[type];
             
-            // Вибираємо питання потрібного типу, перемішуємо їх
             const typeQuestions = allQuestions
                 ?.filter(q => q.type === type)
                 .sort(() => Math.random() - 0.5)
@@ -98,13 +96,9 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
                 finalPool = [...finalPool, ...typeQuestions];
             }
             });
-
-            // Сортуємо фінальний тест: спочатку всі single, потім matching і т.д. 
-            // (Або можна ще раз перемішати все разом)
             setQuestions(finalPool);
 
         } else if (isErrorMode) {
-            // Ваша існуюча логіка для роботи над помилками
             const { data } = await supabase
             .from('user_errors')
             .select(`question_id, questions (*)`)
@@ -114,13 +108,21 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
             setQuestions(data?.map(item => item.questions) || []);
 
         } else {
-            // Звичайний тест по темі
-            const { data } = await supabase
-            .from('questions')
-            .select('*')
-            .eq('topic_id', topicId)
-            .limit(12);
-            
+            console.log("=== ДЕБАГ ЗВИЧАЙНОГО РЕЖИМУ ===");
+            console.log("Отриманий з URL topicId:", topicId);
+            console.log("Тип змінної topicId:", typeof topicId);
+
+            const { data, error } = await supabase
+                .from('questions')
+                .select('*')
+                .eq('topic_id', topicId)
+                .limit(12);
+
+            if (error) {
+                console.error("Помилка запиту Supabase:", error.message);
+            }
+
+            console.log("Результат запиту з бази даних:", data);
             setQuestions(data || []);
         }
         } catch (err) {
@@ -150,9 +152,9 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
         return () => clearInterval(timer);
     }, [loading]);
 
-    const handleAnswer = (questionId: string, answer: any) => {
+    const handleAnswer = useCallback((questionId: string, answer: any) => {
         setAnswers(prev => ({ ...prev, [questionId]: answer }));
-    };
+    }, []);
 
     const handleFinish = () => {
         const unanswered = questions.filter(q => !answers[q.id]);
@@ -183,8 +185,8 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
                 .from('test_attempts')
                 .insert({
                     user_id: user.id,
-                    topic_id: mode === 'nmt' ? null : topicId, // null для НМТ
-                    subject_id: subjectId,                     // тепер ми знаємо предмет
+                    topic_id: mode === 'nmt' ? null : topicId, 
+                    subject_id: subjectId,                      
                     mode: mode,
                     score: correctQuestions.length,
                     total_questions: questions.length,
@@ -286,9 +288,7 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
                 isOpen={isModalOpen} 
                 title="Не всі питання заповнені" 
                 message={`Ви пропустили ${unansweredCount} питань. Все одно завершити?`} 
-                // Кнопка "Повернутися" (onConfirm в модалці)
                 onConfirm={() => setIsModalOpen(false)} 
-                // Кнопка "Завершити зараз" (onCancel в модалці)
                 onCancel={processFinish} 
             />
         </div>

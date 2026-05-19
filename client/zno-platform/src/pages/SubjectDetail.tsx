@@ -25,7 +25,6 @@ function SubjectDetail() {
         async function fetchSubjectData() {
             setLoading(true);
             
-            // 1. Отримуємо назву предмета
             const { data: subject } = await supabase
                 .from('subjects')
                 .select('name')
@@ -33,14 +32,12 @@ function SubjectDetail() {
                 .single();
             if (subject) setSubjectName(subject.name);
 
-            // 2. Отримуємо теми
             const { data: topicsData } = await supabase
                 .from('topics')
                 .select('*')
                 .eq('subject_id', subjectId);
             setTopics(topicsData || []);
 
-            // 3. Отримуємо кількість помилок користувача за темами
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: errorData } = await supabase

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react"; 
 import { supabase } from "../services/supabaseClient"; 
-import type { UserDTO } from "@zno/shared"; 
+import type { UserDTO, Role } from "@zno/shared"; 
 
 interface AuthContectType { 
     user: UserDTO | null; 
@@ -29,26 +29,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } 
     }, []); 
 
-    const handleStateChange = useCallback(async (session: any) => { 
-        try { 
-            if (session?.user) { 
-                const profile = await fetchProfile(session.user.id); 
-                setUser({ 
-                    id: session.user.id, 
-                    email: session.user.email || '', 
-                    username: profile?.username || 'Користувач', 
-                    role: profile?.role || 'student', 
-                    createdAt: session.user.created_at 
-                }); 
-            } else { 
-                setUser(null); 
-            } 
-        } catch (err) { 
-            console.error("Auth handler error:", err); 
-        } finally { 
-            setLoading(false); 
-        } 
-    }, [fetchProfile]); 
+    const handleStateChange = useCallback(async (session: any) => {
+        try {
+            if (session?.user) {
+                const profile = await fetchProfile(session.user.id);
+                
+                let userRole: Role = 'student';
+                
+                if (profile?.role) {
+                    userRole = profile.role as Role;
+                } else if (session.user.email?.endsWith("@knu.edu.ua")) {
+                    userRole = 'teacher';
+                }
+
+                setUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    username: profile?.username || 'Користувач',
+                    role: userRole,
+                    createdAt: session.user.created_at
+                });
+            } else {
+                setUser(null);
+            }
+        } catch (err) {
+            console.error("Auth handler error:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchProfile]);
 
     useEffect(() => { 
         supabase.auth.getSession().then(({ data: { session } }) => { 
@@ -69,7 +78,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false); 
     }; 
 
-    // Виправлення SonarLint S6481
     const contextValue = useMemo(() => ({ 
         user, 
         loading, 
