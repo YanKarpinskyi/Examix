@@ -1,63 +1,112 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import authService from "../services/authService"
+import authService from "../services/authService";
 import "./Auth.scss";
 import googleIcon from "../assets/auth/google-logo.png";
 
+interface GroupOption {
+  id: string;
+  name: string;
+  faculty: string | null;
+}
+
 function Register() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [allGroups, setAllGroups] = useState<GroupOption[]>([]);
+  const [faculties, setFaculties] = useState<string[]>([]);
+  const [selectedFaculty, setSelectedFaculty] = useState("");
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
+    groupId: "",
   });
 
-  const navigate = useNavigate();
+  const filteredGroups = useMemo(() => {
+    if (!selectedFaculty) return [];
+    return allGroups.filter((group) => group.faculty === selectedFaculty);
+  }, [selectedFaculty, allGroups]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    async function fetchGroups() {
+      try {
+        const data = await authService.getGroups();
+        if (data) {
+          setAllGroups(data);
+          const uniqueFaculties = Array.from(
+            new Set(data.map((group) => group.faculty).filter(Boolean))
+          ) as string[];
+          setFaculties(uniqueFaculties);
+        }
+      } catch (err: any) {
+        console.error("Помилка завантаження груп:", err.message);
+        setError("Не вдалося завантажити навчальні групи.");
+      }
+    }
+    fetchGroups();
+  }, []);
+
+  const handleFacultyChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const faculty = e.target.value;
+    setSelectedFaculty(faculty);
+    setFormData((prev) => ({
+      ...prev,
+      groupId: "",
+    }));
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Паролі не збігаються!");
+      setError("Паролі не збігаються");
       return;
     }
 
     if (formData.password.length < 8) {
-      setError("Пароль має бути не менше 8 символів");
+      setError("Пароль має містити мінімум 8 символів");
       return;
     }
 
-    console.log("Реєстрація:", formData);
+    if (!formData.groupId) {
+      setError("Оберіть навчальну групу");
+      return;
+    }
 
     setLoading(true);
 
     try {
       const response = await authService.register({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
-      });
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        groupId: formData.groupId,
+      } as any); 
 
-      console.log("Успішна реєстрація:", response);
-
-      if (response.token) {
+      if (response && response.token) {
         localStorage.setItem("token", response.token);
+        localStorage.setItem("user", JSON.stringify(response.user));
       }
 
       alert("Реєстрація успішна!");
-
+      
       navigate("/login");
     } catch (err: any) {
-      setError(err.message || "Сталася помилка при реєстрації");
+      console.error("❌ Помилка реєстрації на фронтенді:", err);
+      setError(err.message || "Помилка під час реєстрації");
     } finally {
       setLoading(false);
     }
@@ -68,10 +117,11 @@ function Register() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="logo-icon">
-            <img src="/favicon.svg" alt="logo" width={35} style={{borderRadius: '10px'}}/>
+            <img src="/favicon.svg" alt="logo" width={35} style={{ borderRadius: "10px" }} />
           </div>
-          <h2 style={{width: 'fitContent', verticalAlign: 'middle'}}>Examix</h2>
+          <h2>Examix</h2>
         </div>
+
         <div className="auth-titles">
           <h1>Створити акаунт</h1>
           <p>Приєднуйся до спільноти Examix</p>
@@ -82,29 +132,62 @@ function Register() {
           <span>Зареєструватися через Google</span>
         </button>
 
-        <div className="divider"><span>або</span></div>
+        <div className="divider">
+          <span>або</span>
+        </div>
 
-        {error && <div className="error-message" style={{color: 'red', marginBottom: '10px', textAlign: 'center'}}>{error}</div>}
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label>Ім'я користувача</label>
             <input name="username" type="text" placeholder="Твоє ім'я" value={formData.username} onChange={handleChange} required />
           </div>
+
           <div className="input-group">
             <label>Email</label>
             <input name="email" type="email" placeholder="example@gmail.com" value={formData.email} onChange={handleChange} required />
           </div>
+
+          <div className="input-group">
+            <label>Факультет</label>
+            <select name="faculty" value={selectedFaculty} onChange={handleFacultyChange} required className="auth-select">
+              <option value=""> — Оберіть факультет — </option>
+              {faculties.map((faculty) => (
+                <option key={faculty} value={faculty}>
+                  {faculty}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label>Навчальна група</label>
+            <select name="groupId" value={formData.groupId} onChange={handleChange} disabled={!selectedFaculty} required className="auth-select">
+              <option value="">
+                {selectedFaculty ? "— Оберіть вашу групу —" : "Спочатку оберіть факультет"}
+              </option>
+              {filteredGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="input-group">
             <label>Пароль</label>
             <input name="password" type="password" placeholder="Мінімум 8 символів" value={formData.password} onChange={handleChange} required />
           </div>
+
           <div className="input-group">
             <label>Підтвердіть пароль</label>
             <input name="confirmPassword" type="password" placeholder="Повторіть пароль" value={formData.confirmPassword} onChange={handleChange} required />
           </div>
 
-          <button type="submit" className="login-btn" disabled={loading}>{loading ? "Реєстрація..." : "Зареєструватися"}</button>
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? "Реєстрація..." : "Зареєструватися"}
+          </button>
         </form>
 
         <p className="auth-footer">

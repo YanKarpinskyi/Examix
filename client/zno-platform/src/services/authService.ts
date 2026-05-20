@@ -1,25 +1,27 @@
-import type { RegisterDTO, AuthResponse } from "@zno/shared";
-
-const API_URL = "http://localhost:5002/api/auth";
+import type { RegisterDTO, LoginRequest, AuthResponse } from "@zno/shared"; 
+import { apiClient } from "./apiClient";
 
 const authService = {
-    async register(data: RegisterDTO): Promise<AuthResponse>{
-        const response = await fetch(`${API_URL}/register`, {
+    async register(data: RegisterDTO): Promise<AuthResponse> {
+        return apiClient.request<AuthResponse>("/auth/register", {
             method: "POST",
-            headers: {
-                "Content-type": "application/json",
-            },
             body: JSON.stringify(data),
         });
-
-        const result: AuthResponse = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || "Помилка при реєстрації");
-        }
-
-        return result;
     },
+
+    async login(data: LoginRequest): Promise<AuthResponse> {
+        return apiClient.request<AuthResponse>("/auth/login", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    async getGroups(): Promise<{ id: string; name: string; faculty: string | null }[]> {
+        const result = await apiClient.request<{ groups: any[] }>("/public/groups", {
+            method: "GET"
+        });
+        return result.groups;
+    }
 };
 
-export default authService
+export default authService;

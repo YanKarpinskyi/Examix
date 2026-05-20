@@ -1,98 +1,77 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react"; 
-import { supabase } from "../services/supabaseClient"; 
-import type { UserDTO, Role } from "@zno/shared"; 
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import { apiClient } from "../services/apiClient"; 
+import type { UserDTO } from "@zno/shared";
 
-interface AuthContectType { 
-    user: UserDTO | null; 
-    loading: boolean; 
-    logout: () => Promise<void>; 
-} 
+interface AuthContextType {
+  user: UserDTO | null;
+  loading: boolean;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
+}
 
-const AuthContext = createContext<AuthContectType | undefined>(undefined); 
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => { 
-    const [user, setUser] = useState<UserDTO | null>(null); 
-    const [loading, setLoading] = useState(true); 
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<UserDTO | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    const fetchProfile = useCallback(async (userId: string) => { 
-        try { 
-            const { data, error } = await supabase 
-                .from('profiles') 
-                .select('username, role') 
-                .eq('id', userId) 
-                .single(); 
-            if (error) throw error; 
-            return data; 
-        } catch (e) { 
-            console.error("Profile error:", e); 
-            return null; 
-        } 
-    }, []); 
+  const checkAuth = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
 
-    const handleStateChange = useCallback(async (session: any) => {
-        try {
-            if (session?.user) {
-                const profile = await fetchProfile(session.user.id);
-                
-                let userRole: Role = 'student';
-                
-                if (profile?.role) {
-                    userRole = profile.role as Role;
-                } else if (session.user.email?.endsWith("@knu.edu.ua")) {
-                    userRole = 'teacher';
-                }
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
-                setUser({
-                    id: session.user.id,
-                    email: session.user.email || '',
-                    username: profile?.username || 'Користувач',
-                    role: userRole,
-                    createdAt: session.user.created_at
-                });
-            } else {
-                setUser(null);
-            }
-        } catch (err) {
-            console.error("Auth handler error:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchProfile]);
+    try {
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
 
-    useEffect(() => { 
-        supabase.auth.getSession().then(({ data: { session } }) => { 
-            handleStateChange(session); 
-        }); 
+      const data = await apiClient.request<{ user: UserDTO }>("/auth/me");
+      setUser(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    } catch (err) {
+      console.error("Помилка верифікації токена:", err);
+      setUser(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => { 
-            handleStateChange(session); 
-        }); 
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-        return () => authListener.subscription.unsubscribe(); 
-    }, [handleStateChange]); 
+  const logout = useCallback(() => {
+    setLoading(true);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setLoading(false);
+    window.location.href = "/login";
+  }, []);
 
-    const logout = async () => { 
-        setLoading(true); 
-        await supabase.auth.signOut(); 
-        setUser(null); 
-        setLoading(false); 
-    }; 
+  const contextValue = useMemo(() => ({ 
+    user, 
+    loading, 
+    logout, 
+    checkAuth 
+  }), [user, loading, logout, checkAuth]);
 
-    const contextValue = useMemo(() => ({ 
-        user, 
-        loading, 
-        logout 
-    }), [user, loading]); 
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-    return ( 
-        <AuthContext.Provider value={contextValue}> 
-            {children} 
-        </AuthContext.Provider> 
-    ); 
-}; 
-
-export const useAuth = () => { 
-    const context = useContext(AuthContext); 
-    if (!context) throw new Error('useAuth must be used within AuthProvider'); 
-    return context; 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
 };

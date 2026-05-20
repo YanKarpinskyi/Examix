@@ -1,40 +1,27 @@
 import { createClient } from "@supabase/supabase-js";
-import fs from "fs";
+import dotenv from 'dotenv';
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const envPath = path.resolve(__dirname, "../../.env");
-
-if (fs.existsSync(envPath)) {
-  const envConfig = fs.readFileSync(envPath, "utf-8");
-  envConfig.split("\n").forEach((line) => {
-    const [key, ...valueParts] = line.split("=");
-    if (key && valueParts.length) {
-      const value = valueParts.join("=").trim().replace(/(^['"])|(['"]$)/g, "");
-      process.env[key.trim()] = value;
-    }
-  });
-}
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-console.log("🔍 ENV PATH:", envPath);
-console.log("🔍 URL:", process.env.SUPABASE_URL ? "✅" : "❌");
-console.log("🔍 ANON:", process.env.SUPABASE_ANON_KEY ? "✅" : "❌");
-console.log("🔍 SERVICE_ROLE:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "✅" : "❌");
+console.log("🔍 ENV PATH:", path.resolve(__dirname, "../../.env"));
+console.log("🔍 SUPABASE_URL:", supabaseUrl ? "✅" : "❌");
+console.log("🔍 SERVICE_ROLE_KEY:", supabaseServiceRoleKey ? `✅ (${supabaseServiceRoleKey.length} chars)` : "❌");
 
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-  console.error("❌ Помилка: Ключі Supabase не знайдено в process.env!");
-  console.error("Шлях, де шукали файл:", envPath);
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error("❌ Критична помилка: SUPABASE_URL або SUPABASE_SERVICE_ROLE_KEY не знайдено!");
+  console.error("Перевірте, чи існує файл .env у корені проекту");
   process.exit(1);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, process.env.SUPABASE_ANON_KEY!);
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: {
@@ -42,3 +29,5 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
     persistSession: false,
   },
 });
+
+console.log("✅ Supabase clients initialized successfully");
