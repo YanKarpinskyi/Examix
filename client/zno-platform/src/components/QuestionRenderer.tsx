@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import "./QuestionRenderer.scss";
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
@@ -35,15 +35,25 @@ interface Props {
 }
 
 const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: Props) => {
+  const optionsArray = useMemo(() => {
+    if (!question.options) return [];
+    try {
+      return typeof question.options === "string" ? JSON.parse(question.options) : question.options;
+    } catch (e) {
+      console.error("Помилка парсингу options:", e);
+      return [];
+    }
+  }, [question.options]);
+  
   console.log("Current question type from DB:", question.type);
   console.log("❌ ПОВНИЙ ОБ'ЄКТ ПИТАННЯ:", question);
 
-  let optionsArray: any[] = [];
-  if (question.options) {
-    optionsArray = typeof question.options === "string" 
-      ? JSON.parse(question.options) 
-      : (Array.isArray(question.options) ? question.options : []);
-  }
+  // let optionsArray: any[] = [];
+  // if (question.options) {
+  //   optionsArray = typeof question.options === "string" 
+  //     ? JSON.parse(question.options) 
+  //     : (Array.isArray(question.options) ? question.options : []);
+  // }
 
   const getOptionText = (opt: any): string => {
     if (!opt) return "";
@@ -141,127 +151,146 @@ const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: 
         </div>
       );
 
-    case 'matching':
-    case 'match': {
-      const leftSide = question.options?.left || optionsArray.map((o: any) => {
-        const txt = getOptionText(o);
-        return txt.includes('—') ? txt.split('—')[0]?.trim() : txt;
-      });
-      
-      const rightSide = question.options?.right || optionsArray.map((o: any) => {
-        const txt = getOptionText(o);
-        return txt.includes('—') ? txt.split('—')[1]?.trim() : null;
-      }).filter(Boolean);
+      case 'matching': case 'match': {
+        const data = Array.isArray(optionsArray) ? optionsArray : [];
+        
+        let leftSide: string[] = [];
+        let rightSide: string[] = [];
 
-      const currentMatches = savedAnswer || {};
+        data.forEach((item: any) => {
+          const fullText = item.text || String(item);
+          
+          if (fullText.includes('—')) {
+            const [l, r] = fullText.split('—').map((s: string) => s.trim());
+            leftSide.push(l.replace(/^\d+$/, ''));
+            rightSide.push(r);
+          } else {
+            leftSide.push(fullText);
+            rightSide.push("?");
+          }
+        });
 
-      return (
-        <div className="matching-question">
-          <h3>{renderMath(question.content)}</h3>
-          <div className="matching-container">
-            <div className="left-side">
-              {leftSide.map((text: string, idx: number) => (
-                <div key={idx} className="matching-row">
-                  <strong>{idx + 1}.</strong> {renderMath(text)}
-                  <select 
-                    value={currentMatches[idx] || ''} 
-                    onChange={(e) => onAnswer({ ...currentMatches, [idx]: e.target.value })}
-                    disabled={showResult}
-                  >
-                    <option value="">?</option>
-                    {rightSide.map((rText: string, rIdx: number) => (
-                      <option key={rIdx} value={rText}>
-                        {String(rText).replace(/\$/g, '')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+        const currentMatches = savedAnswer || {};
+
+        return (
+          <div className="matching-question">
+            <h3>{renderMath(question.content)}</h3>
+            <div className="matching-container">
+              <div className="left-side" style={{ width: '100%' }}>
+                {leftSide.map((text, idx) => (
+                  <div key={idx} className="matching-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '15px'}}>
+                    <span style={{ marginRight: '10px', fontWeight: 'bold' }}>{idx + 1}.</span>
+                    <span style={{ marginRight: '10px' }}>{renderMath(text)}</span>
+                    
+                    <select 
+                      value={currentMatches[idx] || ''} 
+                      onChange={(e) => onAnswer({ ...currentMatches, [idx]: e.target.value })} 
+                      disabled={showResult}
+                    >
+                      <option value="">Оберіть...</option>
+                      {rightSide.map((rText, rIdx) => (
+                        <option key={rIdx} value={rText}>{rText}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            {question.options?.right && (
-                <div className="right-side-legend" style={{ marginTop: '20px', borderTop: '1px solid #eee' }}>
-                    <h4>Варіанти відповіді:</h4>
-                    {rightSide.map((text: string, idx: number) => {
-                    const letters = ['А', 'Б', 'В', 'Г', 'Д'];
-                    return (
-                        <div key={idx} style={{ marginBottom: '4px' }}>
-                        <strong>{letters[idx]})</strong> {renderMath(text)}
-                        </div>
-                    );
-                    })}
-                </div>
-            )}
           </div>
-        </div>
-      );
-    }
+        );
+      }
 
     case 'sequence':
     case 'order': {
         let flatOptions: string[] = [];
-  
-        if (Array.isArray(optionsArray)) {
-          if (optionsArray[0] && typeof optionsArray[0] === 'object' && optionsArray[0].text) {
-            try {
-              const parsed = JSON.parse(optionsArray[0].text);
-              flatOptions = Array.isArray(parsed) ? parsed : optionsArray.map(o => getOptionText(o));
-            } catch {
-              flatOptions = optionsArray.map(o => getOptionText(o));
+
+        if (question.options) {
+            const optionsRaw = Array.isArray(question.options) 
+                ? question.options 
+                : typeof question.options === 'string' 
+                    ? JSON.parse(question.options) 
+                    : [];
+
+            if (Array.isArray(optionsRaw) && typeof optionsRaw[0] === 'string') {
+                flatOptions = optionsRaw;
+            } 
+            else if (Array.isArray(optionsRaw) && optionsRaw[0] && typeof optionsRaw[0] === 'object') {
+                flatOptions = optionsRaw.map(opt => 
+                    opt?.text || opt?.content || String(opt)
+                );
+            } 
+            else if (Array.isArray(optionsRaw) && optionsRaw.every(o => ['0','1','2','3','4'].includes(String(o)))) {
+                console.warn("⚠️ У питання sequence/order прийшли індекси замість тексту!", optionsRaw);
+                flatOptions = optionsRaw.map(String);  
             }
-          } else {
-            flatOptions = optionsArray.map(getOptionText);
-          }
         }
-        
-        const currentOrder = Array.isArray(savedAnswer) ? savedAnswer : flatOptions;
+
+        if (flatOptions.length === 0) {
+            flatOptions = ["Варіант 1", "Варіант 2", "Варіант 3", "Варіант 4"];
+        }
+
+        const currentOrder = Array.isArray(savedAnswer) && savedAnswer.length > 0 
+            ? savedAnswer 
+            : [...flatOptions]; 
 
         const moveItem = (index: number, direction: 'up' | 'down') => {
-        const newOrder = [...currentOrder];
-        const nextIndex = direction === 'up' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= newOrder.length) return;
-        [newOrder[index], newOrder[nextIndex]] = [newOrder[nextIndex], newOrder[index]];
-        onAnswer(newOrder);
-      };
+            const newOrder = [...currentOrder];
+            const nextIndex = direction === 'up' ? index - 1 : index + 1;
+            
+            if (nextIndex < 0 || nextIndex >= newOrder.length) return;
+            
+            [newOrder[index], newOrder[nextIndex]] = [newOrder[nextIndex], newOrder[index]];
+            onAnswer(newOrder);
+        };
 
-      return (
-        <div className="sequence-answer">
-          <h3>{renderMath(question.content)}</h3>
-          <div className="sequence-list">
-            {currentOrder.map((item: string, idx: number) => (
-              <div key={idx} className="sequence-item">
-                <span className="index">{idx + 1}.</span>
-                <span className="text">{renderMath(item)}</span>
-                {!showResult && (
-                  <div className="controls">
-                    <button disabled={idx === 0} onClick={() => moveItem(idx, 'up')}>↑</button>
-                    <button disabled={idx === currentOrder.length - 1} onClick={() => moveItem(idx, 'down')}>↓</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          {showResult && question.correct_answer && (
-            <div className="correct-sequence">
-                <strong>Правильна відповідь: </strong>
-                {(() => {
-                let parsedCorrect = question.correct_answer;
-                if (typeof parsedCorrect === 'string') {
-                    const trimmed = parsedCorrect.trim();
-                    if (trimmed.startsWith('[')) {
-                    try { parsedCorrect = JSON.parse(trimmed); } catch { /* ignore */ }
-                    }
-                }
+        return (
+            <div className="sequence-answer">
+                <h3>{renderMath(question.content)}</h3>
                 
-                if (Array.isArray(parsedCorrect)) {
-                    return parsedCorrect.join(' → ');
-                }
-                return String(parsedCorrect);
-                })()}
+                <div className="sequence-list">
+                    {currentOrder.map((item: string, idx: number) => (
+                        <div key={idx} className="sequence-item">
+                            <span className="index">{idx + 1}.</span>
+                            <span className="text">{renderMath(item)}</span>
+                            
+                            {!showResult && (
+                                <div className="controls">
+                                    <button 
+                                        disabled={idx === 0} 
+                                        onClick={() => moveItem(idx, 'up')}
+                                    >
+                                        ↑
+                                    </button>
+                                    <button 
+                                        disabled={idx === currentOrder.length - 1} 
+                                        onClick={() => moveItem(idx, 'down')}
+                                    >
+                                        ↓
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {showResult && question.correct_answer && (
+                    <div className="correct-sequence">
+                        <strong>Правильна послідовність: </strong>
+                        {(() => {
+                            let correct = question.correct_answer;
+                            if (typeof correct === 'string') {
+                                try {
+                                    correct = JSON.parse(correct);
+                                } catch {}
+                            }
+                            return Array.isArray(correct) 
+                                ? correct.join(' → ') 
+                                : String(correct);
+                        })()}
+                    </div>
+                )}
             </div>
-            )}
-        </div>
-      );
+        );
     }
 
     case 'short':

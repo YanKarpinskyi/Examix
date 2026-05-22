@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../services/supabaseClient';
+// import { supabase } from '../services/supabaseClient';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { apiClient } from '../services/apiClient';
 import './Dashboard.scss';
 
 interface Subject {
@@ -19,6 +20,19 @@ interface AssignedTest {
   group: { name: string } | null;
 }
 
+const formatDateTime = (dateString: string | null | undefined) => {
+  if (!dateString) return "—";
+  const date = new Date(dateString);
+  return date.toLocaleString('uk-UA', {
+    timeZone: 'Europe/Kyiv',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -34,48 +48,17 @@ function Dashboard() {
       try {
         setLoading(true);
 
-        const { data: studentGroups, error: groupError } = await supabase
-          .from("group_students")
-          .select(`
-            group:group_id (
-              id,
-              name
-            )
-          `)
-          .eq("student_id", user.id);
+        const data = await apiClient.request<{
+          groups: any[];
+          subjects: Subject[];
+          assignments: AssignedTest[];
+        }>("/student/dashboard");
 
-        if (!groupError && studentGroups) {
-          setMyGroups(studentGroups.map((g: any) => g.group).filter(Boolean));
-        } else if (groupError) {
-          console.error("Помилка завантаження груп студента:", groupError.message);
-        }
+        setMyGroups(data.groups || []);
+        setSubjects(data.subjects || []);
+        setAssignments(data.assignments || []);
 
-        const { data: subjectsData, error: subError } = await supabase
-          .from('subjects')
-          .select('*');
-        if (subError) throw subError;
-        setSubjects(subjectsData || []);
-
-        const { data: assignData, error: assignError } = await supabase
-          .from("group_assignments")
-          .select(`
-            id,
-            due_date,
-            subject:subject_id (id, name),
-            topic:topic_id (id, name),
-            group:groups!inner (
-              name,
-              group_students!inner (student_id)
-            )
-          `)
-          .eq("group.group_students.student_id", user.id);
-
-        if (!assignError && assignData) {
-          setAssignments(assignData as any[]);
-        } else if (assignError) {
-          console.error("Помилка завантаження призначень:", assignError.message);
-        }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Помилка ініціалізації дашборду:", err);
       } finally {
         setLoading(false);
@@ -83,7 +66,7 @@ function Dashboard() {
     }
 
     loadDashboardData();
-  }, [user?.id]);  
+  }, [user?.id]);
 
   return (
     <div className="dashboard-page">
@@ -118,7 +101,6 @@ function Dashboard() {
           </div>
         ) : (
           <>
-            {/* СЕКЦІЯ ПРИЗНАЧЕНИХ ТЕСТІВ ВІД ВИКЛАДАЧА */}
             <section className="assignments-section" style={{ marginBottom: "40px" }}>
               <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "16px" }}>
                 🎯 Призначені тести від викладачів
@@ -136,7 +118,7 @@ function Dashboard() {
                       <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>Група: {a.group?.name}</p>
                       {a.due_date && (
                         <p style={{ fontSize: "0.85rem", color: "#ef4444", fontWeight: "500" }}>
-                          Дедлайн: {new Date(a.due_date).toLocaleString()}
+                          Дедлайн: {formatDateTime(a.due_date)}
                         </p>
                       )}
                       <button 
@@ -158,7 +140,6 @@ function Dashboard() {
               )}
             </section>
 
-            {/* СЕКЦІЯ ЗАГАЛЬНИХ ПРЕДМЕТІВ */}
             <section className="subjects-section">
               <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "16px" }}>
                 📚 Самостійна підготовка (за предметами)

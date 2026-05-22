@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
+import { apiClient } from "../services/apiClient";
 import type { Role } from "@zno/shared";
 
 interface Subject { id: string; name: string; }
@@ -50,47 +51,54 @@ export default function AdminPanel() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    console.log("📋 Assignments from server:", assignments);
+  }, [assignments]);
+
   const fetchSubjects = async () => {
-    const { data } = await supabase.from("subjects").select("*");
-    setSubjects(data || []);
+    const response = await apiClient.request<{ subjects: Subject[] }>("/public/subjects", { 
+      method: "GET" 
+    });
+    
+    setSubjects(response.subjects || []);
   };
 
   const fetchTopics = async () => {
-    const { data } = await supabase.from("topics").select("*, subjects(id, name)");
-    setTopics(data || []);
+    try {
+      const response = await apiClient.request<{ topics: Topic[] }>("/teacher/topics", { 
+        method: "GET" 
+      });
+      setTopics(response.topics || []);
+    } catch (err) {
+      console.error("Помилка отримання тем через API:", err);
+    }
   };
 
   const fetchGroups = async () => {
-    const { data } = await supabase.from("groups").select("*");
-    setGroups(data || []);
+    const data = await apiClient.request<{ groups: Group[] }>("/public/groups", { 
+      method: "GET" 
+    });
+    setGroups(data.groups || []);
   };
 
   const fetchAssignments = async () => {
-    const { data } = await supabase
-      .from("group_assignments")
-      .select(`
-        id, created_at, due_date,
-        group:group_id (name),
-        subject:subject_id (name),
-        topic:topic_id (name)
-      `)
-      .order("created_at", { ascending: false });
-    setAssignments(data as any || []);
+    const data = await apiClient.request<{ assignments: Assignment[] }>("/assignments", { 
+      method: "GET" 
+    });
+    setAssignments(data.assignments || []);
   };
 
   const fetchUsers = async () => {
     setUsersLoading(true);
     setUsersError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch("http://localhost:5002/api/admin/users", {
-        headers: { Authorization: `Bearer ${session?.access_token}` }
+      const data = await apiClient.request<{ users: AdminUser[] }>("/admin/users", {
+        method: "GET"
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setUsers(data.users || []);
+      
+      setUsers(data.users);
     } catch (err) {
-      setUsersError(err instanceof Error ? err.message : "Помилка завантаження");
+      setUsersError(err instanceof Error ? err.message : "Помилка завантаження користувачів");
     } finally {
       setUsersLoading(false);
     }
@@ -163,31 +171,44 @@ export default function AdminPanel() {
 
   const handleAssignTest = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedGroup) return alert("Оберіть групу!");
+    if (!assignSubjectId) return alert("Оберіть предмет!");
+    if (assignmentType === "topic" && !assignTopicId) {
+      return alert("Оберіть тему!");
+    }
 
     const payload = {
       groupId: selectedGroup,
-      subjectId: assignSubjectId || null,
+      subjectId: assignSubjectId,
       topicId: assignmentType === "topic" ? assignTopicId : null,
       dueDate: dueDate || null,
     };
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch("http://localhost:5002/api/assignments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("http://localhost:5002/api/assignments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      alert("Тест успішно призначено групі!");
-      setDueDate("");
-      fetchAssignments();
-    } else {
-      alert("Помилка призначення");
+      const result = await res.json();
+
+      if (res.ok) {
+        alert("Тест успішно призначено групі!");
+        setDueDate("");
+        fetchAssignments();       
+      } else {
+        alert(result.error || "Помилка призначення");
+        console.error(result);
+      }
+    } catch (err: any) {
+      alert("Помилка з'єднання з сервером");
+      console.error(err);
     }
   };
 
@@ -218,7 +239,6 @@ export default function AdminPanel() {
         </button>
       </div>
 
-      {/* ==================== ВКЛАДКА ПРИЗНАЧЕННЯ ТЕСТІВ ==================== */}
       {activeTab === "assignments" && (
         <div className="td-form">
           <h2>Призначити тест групі</h2>
@@ -286,10 +306,10 @@ export default function AdminPanel() {
               {assignments.map(a => (
                 <div key={a.id} style={{ padding: "12px", background: "#1f2937", color: "#fff", borderRadius: "8px" }}>
                   <strong>{a.group?.name}</strong> — {a.topic ? a.topic.name : a.subject?.name || "Весь предмет"}
-                  {a.due_date && (
-                    <span style={{ marginLeft: "10px", fontSize: "0.9rem", color: "#9ca3af" }}>
-                      до {new Date(a.due_date).toLocaleDateString()}
-                    </span>
+                  {a.due_date && ( 
+                    <span style={{ marginLeft: "10px", fontSize: "0.9rem", color: "#9ca3af" }}> 
+                      до {a.due_date.replace("T", " ").substring(0, 16)} 
+                    </span> 
                   )}
                 </div>
               ))}
@@ -298,7 +318,6 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* ==================== ВКЛАДКА НАВЧАЛЬНІ ГРУПИ ==================== */}
       {activeTab === "groups" && (
         <div className="td-form">
           <h2>Керування навчальними групами</h2>
@@ -319,7 +338,6 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* ==================== ВКЛАДКА КОРИСТУВАЧІ ТА РОЛІ ==================== */}
       {activeTab === "users" && (
         <div>
           <h2>Керування ролями користувачів</h2>
@@ -357,7 +375,6 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Інші вкладки (questions, analytics, review) рендеряться аналогічно */}
     </div>
   );
 }

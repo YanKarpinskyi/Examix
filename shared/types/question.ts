@@ -13,8 +13,12 @@ export interface AnswerOption {
 
 export interface QuestionDTO {
     id: string;
-    text: string;
+    content: string;
     type: QuestionType;
-    options?: AnswerOption[];
-    topicId: string;
+    options?: any[];
+    correct_answer?: any;
+    points?: number;
+    topic_id?: string;
+    image_url?: string | null; 
+    created_at?: string;
 }

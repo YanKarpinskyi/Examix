@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import bcrypt from "bcrypt";
+// import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { supabaseAdmin } from "./config/db";
 import type { RegisterDTO, LoginRequest, Role } from "@zno/shared";
@@ -22,6 +22,7 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: Role };
+    console.log("🔍 [AUTH DEBUG] Роль в токені:", decoded.role);
     (req as any).userId = decoded.userId;
     (req as any).userEmail = decoded.email;
     (req as any).userRole = decoded.role;
@@ -50,95 +51,71 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
     const { email, password, username, groupId } = req.body;
     const role = detectRoleByEmail(email);
 
-    const { data: existingUser } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
+    // 1. Створюємо користувача в Supabase Auth
+    // Тригер у БД автоматично створить рядок у таблиці 'profiles'
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { username, role }
+    });
 
-    if (existingUser) {
-      return res.status(400).json({ error: "Користувач з таким Email вже існує" });
-    }
+    if (authError) return res.status(400).json({ error: authError.message });
+    
+    const userId = authData.user.id;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // --- КРОК 2 ВИДАЛЕНО/ЗАКОМЕНТОВАНО ---
+    // Більше не потрібно вручну вставляти в 'profiles', 
+    // бо це робить тригер БД (handle_new_user).
+    // --------------------------------------
 
-    const { data: newUser, error: dbError } = await supabaseAdmin
-      .from("profiles")
-      .insert([{ username, email, role, password_hash: hashedPassword }])
-      .select()
-      .single();
-
-    if (dbError || !newUser) {
-      return res.status(400).json({ error: dbError?.message || "Не вдалося створити профіль" });
-    }
-
+    // 3. Додавання до групи
+    // Важливо: ми використовуємо userId, отриманий від Supabase Auth
     if (role === "student" && groupId) {
       const { error: groupError } = await supabaseAdmin
         .from("group_students")
-        .insert([{ group_id: groupId, student_id: newUser.id }]);
-
+        .insert([{ group_id: groupId, student_id: userId }]);
+        
       if (groupError) {
-        console.error("❌ Помилка додавання студента до групи:", groupError.message);
+        console.error("❌ Помилка додавання до групи:", groupError);
       }
     }
 
-    const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return res.status(201).json({
-      token,
-      user: { id: newUser.id, email: newUser.email, username: newUser.username, role: newUser.role }
+    return res.status(201).json({ 
+      message: "Користувача успішно зареєстровано",
+      userId: userId 
     });
   } catch (err: any) {
-    res.status(500).json({ error: "Внутрішня помилка сервера при реєстрації", details: err.message });
+    res.status(500).json({ error: "Помилка сервера", details: err.message });
   }
 });
 
+// Замініть ваш поточний логін на це:
 app.post("/api/auth/login", async (req: Request, res: Response) => {
-  try {
-    const { email, password }: LoginRequest = req.body;
-    
-    console.log(`\n=== НАМАГАЄТЬСЯ УВІЙТИ: ${email} ===`);
-    console.log(`Введений пароль (текст): "${password}"`);
+  const { email, password } = req.body;
+  
+  // Використовуємо офіційний SDK для входу
+  const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    const { data: user, error: dbError } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .eq("email", email)
-      .maybeSingle();
+  if (error) return res.status(400).json({ error: "Невірний email або пароль" });
 
-    if (dbError || !user) {
-      console.log(`❌ Користувача з email ${email} не знайдено в базі або помилка БД`);
-      return res.status(400).json({ error: "Невірний email або пароль" });
-    }
+  // Отримуємо профіль користувача з вашої таблиці
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("*")
+    .eq("id", data.user.id)
+    .single();
 
-    console.log(`Юзера знайдено! Хеш з бази: "${user.password_hash}"`);
-    console.log(`Довжина хешу в базі: ${user.password_hash?.length} символів`);
+  const token = jwt.sign(
+    { userId: profile.id, email: profile.email, role: profile.role },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    
-    console.log(`Результат Bcrypt перевірки: ${isPasswordValid}`);
-
-    if (!isPasswordValid) {
-      return res.status(400).json({ error: "Невірний email або пароль" });
-    }
-
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return res.json({
-      token,
-      user: { id: user.id, email: user.email, username: user.username, role: user.role }
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: "Внутрішня помилка сервера при вході", details: err.message });
-  }
+  return res.json({ token, user: profile });
 });
 
 app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
@@ -169,12 +146,134 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Response) => {
+//   const userId = (req as any).userId;
+  
+//   try {
+//     // 1. Отримуємо групи, до яких належить студент
+//     const { data: studentGroups, error: groupError } = await supabaseAdmin
+//       .from("group_students")
+//       .select(`
+//         groups!group_students_group_id_fkey (
+//           id,
+//           name
+//         )
+//       `)
+//       .eq("student_id", userId);
+
+//     if (groupError) throw groupError;
+
+//     // 2. Отримуємо всі предмети
+//     const { data: subjects, error: subError } = await supabaseAdmin
+//       .from("subjects")
+//       .select("*")
+//       .order("name");
+
+//     if (subError) throw subError;
+
+//     // 3. Формуємо масив ID груп
+//     // studentGroups виглядає як: [{ groups: { id: "...", name: "..." } }, ...]
+//     const groupIds = (studentGroups || [])
+//       .map((g: any) => g.groups?.id)
+//       .filter(Boolean);
+
+//     // 4. Отримуємо призначення (assignments)
+//     let assignments: any[] = [];
+//     if (groupIds.length > 0) {
+//       const { data: assignData, error: assignError } = await supabaseAdmin
+//         .from("group_assignments")
+//         .select(`
+//           id, 
+//           due_date, 
+//           subjects (id, name), 
+//           topics (id, name), 
+//           groups!group_students_group_id_fkey (id, name)
+//         `)
+//         .in("group_id", groupIds);
+
+//       if (assignError) throw assignError;
+//       assignments = assignData || [];
+//     }
+
+//     return res.json({ 
+//       groups: (studentGroups || []).map((g: any) => g.groups).filter(Boolean), 
+//       subjects: subjects || [], 
+//       assignments 
+//     });
+//   } catch (err: any) {
+//     console.error("❌ Помилка налаштування дашборду:", err);
+//     return res.status(500).json({ error: "Помилка завантаження дашборду", details: err.message });
+//   }
+// });
+
+app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  console.log(`📊 Dashboard запит від userId: ${userId}`);
+
+  try {
+    const { data: studentGroups, error: groupError } = await supabaseAdmin
+      .from("group_students")
+      .select(`
+        groups!group_students_group_id_fkey (
+          id,
+          name,
+          faculty
+        )
+      `)
+      .eq("student_id", userId);
+
+    if (groupError) throw groupError;
+
+    const { data: subjects, error: subError } = await supabaseAdmin
+      .from("subjects")
+      .select("id, name, description")
+      .order("name");
+
+    if (subError) throw subError;
+
+    const groups = (studentGroups || []).map((g: any) => g.groups).filter(Boolean);
+    const groupIds = groups.map((g: any) => g.id);
+
+    let assignments: any[] = [];
+    if (groupIds.length > 0) {
+      const { data: assignData, error: assignError } = await supabaseAdmin
+        .from("group_assignments")
+        .select(`
+          id,
+          due_date,
+          subject:subject_id (id, name),
+          topic:topic_id (id, name),
+          group:group_id (id, name)
+        `)
+        .in("group_id", groupIds);
+
+      if (assignError) {
+        console.error("❌ Assignments fetch error:", assignError);
+      } else {
+        assignments = assignData || [];
+      }
+    }
+
+    console.log(`✅ Знайдено груп: ${groups.length}, призначень: ${assignments.length}`);
+
+    return res.json({ 
+      groups, 
+      subjects: subjects || [], 
+      assignments 
+    });
+
+  } catch (err: any) {
+    console.error("❌ Dashboard error:", err);
+    return res.status(500).json({ error: "Помилка завантаження дашборду", details: err.message });
+  }
+});
+
 app.get("/api/teacher/questions", requireAuth, requireRole(["teacher", "admin"]), async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("questions")
       .select(`
-        id, content, type, created_at, options, points, correct_answer, topic_id,
+        id, content, type, created_at, options, points, correct_answer, topic_id, image_url,
         topics!fk_questions_topics ( id, name, subject_id, subjects ( id, name ) )
       `)
       .order("created_at", { ascending: false });
@@ -218,6 +317,38 @@ app.post("/api/teacher/questions", requireAuth, requireRole(["teacher", "admin"]
   }
 });
 
+app.get("/api/student/subjects/:subjectId", requireAuth, async (req: Request, res: Response) => {
+  const { subjectId } = req.params;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("subjects")
+      .select("id, name, description")
+      .eq("id", subjectId)
+      .single();
+
+    if (error) return res.status(404).json({ error: "Предмет не знайдено" });
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/student/subjects/:subjectId/topics", requireAuth, async (req: Request, res: Response) => {
+  const { subjectId } = req.params;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("topics")
+      .select("id, name, description")
+      .eq("subject_id", subjectId)
+      .order("name");
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ topics: data || [] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), async (req, res) => {
   try {
     const { id } = req.params;
@@ -250,6 +381,59 @@ app.patch("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "ad
   }
 });
 
+
+app.get("/api/teacher/groups", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("groups")
+      .select(`
+        id,
+        name,
+        faculty,
+        created_at,
+        group_students!group_students_group_id_fkey (
+          count
+        )
+      `)
+      .order("faculty")
+      .order("name");
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    const formatted = (data || []).map(g => ({
+      ...g,
+      student_count: parseInt(String(g.group_students?.[0]?.count ?? "0"), 10)
+    }));
+
+    res.json({ groups: formatted });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/public/groups-by-faculty", async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("groups")
+      .select("id, name, faculty")
+      .order("faculty")
+      .order("name");
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    const byFaculty: Record<string, any[]> = {};
+    (data || []).forEach(g => {
+      const fac = g.faculty || "Інші";
+      if (!byFaculty[fac]) byFaculty[fac] = [];
+      byFaculty[fac].push(g);
+    });
+
+    res.json({ groupsByFaculty: byFaculty });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/admin/users", requireAuth, requireRole(["admin"]), async (_req: Request, res: Response) => {
   const { data, error } = await supabaseAdmin
     .from("profiles")
@@ -278,6 +462,12 @@ app.get("/api/public/groups", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/api/public/subjects", async (req: Request, res: Response) => {
+  const { data, error } = await supabaseAdmin.from("subjects").select("*");
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ subjects: data });
+});
+
 app.post("/api/groups", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
   const { name } = req.body;
   const teacherId = (req as any).userId;
@@ -303,18 +493,156 @@ app.post("/api/groups/:groupId/students", requireAuth, requireRole(["teacher", "
   return res.json({ success: true });
 });
 
-app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
-  const { groupId, subjectId, topicId, dueDate } = req.body;
-  const userId = (req as any).userId;
+app.get("/api/groups/:groupId/students", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+  const { groupId } = req.params;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("group_students")
+      .select(`
+        student_id,
+        profiles!group_students_student_id_fkey (
+          id,
+          username,
+          email
+        )
+      `)
+      .eq("group_id", groupId);
 
+    if (error) return res.status(400).json({ error: error.message });
+
+    const students = (data || []).map((row: any) => row.profiles).filter(Boolean);
+    return res.json({ students });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/assignments", requireAuth, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from("group_assignments")
-    .insert([{ group_id: groupId, subject_id: subjectId || null, topic_id: topicId || null, assigned_by: userId, due_date: dueDate || null }])
-    .select()
-    .single();
+    .select(`
+      id, created_at, due_date, 
+      group:group_id (name), 
+      subject:subject_id (name), 
+      topic:topic_id (name)
+    `)
+    .order("created_at", { ascending: false });
+    
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ assignments: data });
+});
 
-  if (error) return res.status(400).json({ error: error.message });
-  return res.status(201).json({ assignment: data });
+app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+  const requestStart = Date.now();
+  console.log("======================================");
+  console.log("📥 [CREATE ASSIGNMENT] REQUEST START");
+
+  const { groupId, subjectId, topicId, dueDate } = req.body;
+  const assignedBy = (req as any).userId;
+
+  console.log("📦 Request body:", req.body);
+  console.log("👤 assignedBy:", assignedBy);
+
+  if (!assignedBy) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!groupId) {
+    return res.status(400).json({ error: "groupId is required" });
+  }
+
+  let finalSubjectId = subjectId;
+  let finalTopicId = topicId;
+
+  if (topicId) {
+    finalSubjectId = null;
+    finalTopicId = topicId;
+  } else {
+    finalSubjectId = subjectId;
+    finalTopicId = null;
+  }
+
+  if (!finalSubjectId && !finalTopicId) {
+    return res.status(400).json({ error: "Потрібно вказати або предмет, або тему" });
+  }
+
+  try {
+    const formattedDueDate = dueDate ? `${dueDate}:00Z` : null;
+
+    const insertPayload = {
+      group_id: groupId,
+      subject_id: finalSubjectId,
+      topic_id: finalTopicId,
+      due_date: formattedDueDate,
+      assigned_by: assignedBy
+    };
+
+    console.log("📤 Final insert payload:", insertPayload);
+
+    const { data, error } = await supabaseAdmin
+      .from("group_assignments")
+      .insert([insertPayload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Supabase error:", error);
+      return res.status(400).json({
+        error: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+    }
+
+    console.log("✅ Assignment created successfully");
+    return res.status(201).json({ assignment: data });
+
+  } catch (err: any) {
+    console.error("❌ Server error:", err);
+    return res.status(500).json({ error: "Помилка сервера", details: err.message });
+  }
+});
+
+app.get("/api/student/topics/:topicId/questions", requireAuth, async (req: Request, res: Response) => {
+  const { topicId } = req.params;
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("questions")
+      .select(`
+        id, 
+        content, 
+        type, 
+        options, 
+        correct_answer, 
+        points,
+        topic_id,
+        image_url,           
+        created_at
+      `)
+      .eq("topic_id", topicId)
+      .order("created_at");
+
+    if (error) {
+      console.error("Questions fetch error:", error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    console.log(`✅ Завантажено ${data?.length || 0} питань для topic ${topicId}`);
+    if (data && data.length > 0) {
+      console.log("Приклад питання:", {
+        content: data[0].content?.substring(0, 80) + "...",
+        hasImage: !!data[0].image_url,
+        image_url: data[0].image_url
+      });
+    }
+
+    res.json({ questions: data || [] });
+  } catch (err: any) {
+    console.error("Server error fetching questions:", err);
+    res.status(500).json({ error: "Помилка сервера при завантаженні питань" });
+  }
 });
 
 app.get("/api/groups/:groupId/analytics", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {

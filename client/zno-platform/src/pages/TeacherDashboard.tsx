@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import MathText from "../components/MathText";
+import StudentsModal from "../components/StudentsModal";
 import "./TeacherDashboard.scss";
 import { apiClient } from "../services/apiClient";
 
@@ -62,7 +63,6 @@ const createEmptyOption = (isCorrect = false): OptionField => ({
 
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState<MainTab>("questions");
-
   const [questions, setQuestions] = useState<Question[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -93,17 +93,47 @@ export default function TeacherDashboard() {
   });
 
   const [groups, setGroups] = useState<any[]>([]);
+  const [groupsByFaculty, setGroupsByFaculty] = useState<Record<string, any[]>>({});
+  const [selectedFaculty, setSelectedFaculty] = useState<string>("");
   const [newGroupName, setNewGroupName] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [studentEmail, setStudentEmail] = useState("");
-
   const [assignmentType, setAssignmentType] = useState<"subject" | "topic">("subject");
   const [assignSubjectId, setAssignSubjectId] = useState("");
   const [assignTopicId, setAssignTopicId] = useState("");
   const [dueDate, setDueDate] = useState("");
-
   const [analytics, setAnalytics] = useState<any>(null);
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
+  const [studentsModalOpen, setStudentsModalOpen] = useState(false);
+  const [studentsModalGroup, setStudentsModalGroup] = useState<string>("");
+  const [studentsModalList, setStudentsModalList] = useState<any[]>([]);
+  const [studentsModalLoading, setStudentsModalLoading] = useState(false);
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      const res1 = await apiClient.request<{ groups: any[] }>("/teacher/groups");
+      setGroups(res1.groups || []);
+      const res2 = await apiClient.request<{ groupsByFaculty: Record<string, any[]> }>("/public/groups-by-faculty");
+      setGroupsByFaculty(res2.groupsByFaculty || {});
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const filteredGroups = (selectedFaculty
+    ? groups.filter((g) => g.faculty === selectedFaculty)
+    : groups
+  ).slice().sort((a, b) => (b.student_count ?? 0) - (a.student_count ?? 0));
+
+  useEffect(() => {
+    if (subjects.length > 0 && !assignSubjectId) {
+      setAssignSubjectId(subjects[0].id);
+    }
+  }, [subjects]);
 
   useEffect(() => {
     async function fetchAllData() {
@@ -124,15 +154,20 @@ export default function TeacherDashboard() {
         const uniqueSubjectsMap: Record<string, Subject> = {};
         fetchedTopics.forEach((t) => {
           if (t.subjects) {
-            uniqueSubjectsMap[t.subjects.id] = { id: t.subjects.id, name: t.subjects.name };
+            uniqueSubjectsMap[t.subjects.id] = {
+              id: t.subjects.id,
+              name: t.subjects.name,
+            };
           }
         });
+
         const fetchedSubjects = Object.values(uniqueSubjectsMap);
         setSubjects(fetchedSubjects);
 
         if (fetchedSubjects.length > 0) {
           setSelectedSubjectId(fetchedSubjects[0].id);
           setAssignSubjectId(fetchedSubjects[0].id);
+
           const filteredT = fetchedTopics.filter((t) => t.subject_id === fetchedSubjects[0].id);
           if (filteredT.length > 0) {
             setSelectedTopicId(filteredT[0].id);
@@ -154,10 +189,8 @@ export default function TeacherDashboard() {
 
   const fetchGroupsData = async () => {
     try {
-      const data = await apiClient.request<{ groups: any[] }>("/public/groups");
-      if (data.groups) {
-        setGroups(data.groups);
-      }
+      const data = await apiClient.request<{ groups: any[] }>("/teacher/groups");
+      if (data.groups) setGroups(data.groups);
     } catch (err) {
       console.error("Помилка завантаження груп:", err);
     }
@@ -199,13 +232,14 @@ export default function TeacherDashboard() {
     setSubmitting(true);
     setError(null);
     try {
-      const payload = { ...form, options: form.options.map(({ text, isCorrect }) => ({ text, isCorrect })) };
-
+      const payload = {
+        ...form,
+        options: form.options.map(({ text, isCorrect }) => ({ text, isCorrect })),
+      };
       const resData = await apiClient.request<{ question: any }>("/teacher/questions", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-
       const { question } = resData;
       const topic = topics.find((t) => t.id === form.topicId);
       const newQ: Question = {
@@ -213,7 +247,9 @@ export default function TeacherDashboard() {
         topics: {
           id: form.topicId,
           name: topic?.name ?? "",
-          subjects: topic?.subjects ? { id: topic.subjects.id, name: topic.subjects.name } : null,
+          subjects: topic?.subjects
+            ? { id: topic.subjects.id, name: topic.subjects.name }
+            : null,
         },
       };
       setQuestions([newQ, ...questions]);
@@ -223,7 +259,12 @@ export default function TeacherDashboard() {
       setForm((prev) => ({
         ...prev,
         text: "",
-        options: [createEmptyOption(true), createEmptyOption(), createEmptyOption(), createEmptyOption()],
+        options: [
+          createEmptyOption(true),
+          createEmptyOption(),
+          createEmptyOption(),
+          createEmptyOption(),
+        ],
       }));
     } catch (e: any) {
       setError(e.message || "Не вдалося зберегти питання");
@@ -236,9 +277,7 @@ export default function TeacherDashboard() {
     if (!confirm("Видалити це питання?")) return;
     setDeletingId(id);
     try {
-      await apiClient.request(`/teacher/questions/${id}`, {
-        method: "DELETE",
-      });
+      await apiClient.request(`/teacher/questions/${id}`, { method: "DELETE" });
       setQuestions(questions.filter((q) => q.id !== id));
     } catch (e: any) {
       setError(e.message);
@@ -271,12 +310,10 @@ export default function TeacherDashboard() {
     try {
       const cleanOptions = editOptions.map(({ text, isCorrect }) => ({ text, isCorrect }));
       const payload = { content: editContent, options: cleanOptions };
-
       const resData = await apiClient.request<{ question: any }>(`/teacher/questions/${id}`, {
         method: "PATCH",
         body: JSON.stringify(payload),
       });
-
       const updatedQuestionFromServer = resData.question;
       setQuestions(
         questions.map((q) =>
@@ -332,11 +369,17 @@ export default function TeacherDashboard() {
 
   const handleAssignTest = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedGroup) return alert("Оберіть групу!");
+    if (!assignSubjectId) return alert("Оберіть предмет!");
+
+    if (assignmentType === "topic" && !assignTopicId) {
+      return alert("Оберіть тему!");
+    }
 
     const payload = {
       groupId: selectedGroup,
-      subjectId: assignmentType === "subject" ? assignSubjectId : null,
+      subjectId: assignSubjectId,
       topicId: assignmentType === "topic" ? assignTopicId : null,
       dueDate: dueDate || null,
     };
@@ -375,6 +418,23 @@ export default function TeacherDashboard() {
     }
   };
 
+  const loadStudents = async (groupId: string) => {
+    const groupName = groups.find((g) => g.id === groupId)?.name ?? "Група";
+    setStudentsModalGroup(groupName);
+    setStudentsModalList([]);
+    setStudentsModalLoading(true);
+    setStudentsModalOpen(true);
+    try {
+      const data = await apiClient.request<{ students: any[] }>(`/groups/${groupId}/students`);
+      setStudentsModalList(data.students ?? []);
+    } catch (err: any) {
+      setStudentsModalOpen(false);
+      setError("Помилка завантаження студентів: " + err.message);
+    } finally {
+      setStudentsModalLoading(false);
+    }
+  };
+
   const filteredQuestions = questions.filter((q) => {
     if (!q.topics) return false;
     const matchesSubject = q.topics.subjects?.id === selectedSubjectId;
@@ -391,7 +451,15 @@ export default function TeacherDashboard() {
   if (loading) return <div className="td-loading">Завантаження контенту...</div>;
 
   return (
-    <div className="teacher-dashboard">
+    <>
+      <StudentsModal
+        isOpen={studentsModalOpen}
+        groupName={studentsModalGroup}
+        students={studentsModalList}
+        loading={studentsModalLoading}
+        onClose={() => setStudentsModalOpen(false)}
+      />
+      <div className="teacher-dashboard">
       <div className="td-inner">
         <div className="td-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "15px" }}>
           <h1>👨‍🏫 Панель викладача Examix</h1>
@@ -784,13 +852,83 @@ export default function TeacherDashboard() {
 
           {activeTab === "groups" && (
             <div className="td-form">
-              <h3>Створити нову групу учнів</h3>
+              <h2>👥 Навчальні групи</h2>
+              <p style={{ color: "var(--td-text-muted)", marginBottom: "20px" }}>
+                Перегляд та управління навчальними групами по факультетах
+              </p>
+
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                  Оберіть факультет:
+                </label>
+                <select
+                  className="td-select"
+                  style={{ width: "100%", maxWidth: "400px" }}
+                  value={selectedFaculty}       
+                  onChange={(e) => {
+                    setSelectedFaculty(e.target.value)
+                    console.log("Обрано факультет:", e.target.value);
+                  }}
+                >
+                  <option value="">Всі факультети</option>
+                  {Object.keys(groupsByFaculty).map((fac) => (
+                    <option key={fac} value={fac}>
+                      {fac} ({groupsByFaculty[fac].length})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--td-surface)", borderRadius: "8px" }}>
+                  <thead>
+                    <tr style={{ background: "var(--td-surface-2)", textAlign: "left" }}>
+                      <th style={{ padding: "12px" }}>Назва групи</th>
+                      <th style={{ padding: "12px" }}>Факультет</th>
+                      <th style={{ padding: "12px", textAlign: "center" }}>Кількість студентів</th>
+                      <th style={{ padding: "12px", textAlign: "center" }}>Дії</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredGroups.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} style={{ padding: "40px", textAlign: "center", color: "var(--td-text-muted)" }}>
+                          Ще немає створених груп
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredGroups.map((g: any) => (
+                        <tr key={g.id} style={{ borderBottom: "1px solid var(--td-surface-2)" }}>
+                          <td style={{ padding: "12px", fontWeight: "500" }}>{g.name}</td>
+                          <td style={{ padding: "12px", color: "#888" }}>{g.faculty || "—"}</td>
+                          <td style={{ padding: "12px", textAlign: "center", fontWeight: "bold" }}>
+                            {g.student_count || 0} студентів
+                          </td>
+                          <td style={{ padding: "12px", textAlign: "center" }}>
+                            <button
+                              className="td-btn-new"
+                              style={{ padding: "6px 12px", fontSize: "0.9rem" }}
+                              onClick={() => loadStudents(g.id)}  
+                            >
+                              Переглянути студентів
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <hr style={{ border: "1px solid var(--td-surface-2)", margin: "30px 0" }} />
+
+              <h3>Створити нову групу</h3>
               <form onSubmit={handleCreateGroup} style={{ display: "flex", gap: "12px", marginBottom: "25px" }}>
                 <input
                   type="text"
                   className="td-select"
-                  style={{ background: "var(--td-surface)", color: "#fff", padding: "10px" }}
-                  placeholder="Назва групи (наприклад: КН-23, Група А)"
+                  style={{ background: "var(--td-surface)", color: "#fff", padding: "10px", flex: 1 }}
+                  placeholder="Назва групи (наприклад: КН-241)"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   required
@@ -800,12 +938,10 @@ export default function TeacherDashboard() {
                 </button>
               </form>
 
-              <hr style={{ border: "1px solid var(--td-surface-2)", margin: "20px 0" }} />
-
-              <h3>Зарахувати студента за email-адресою</h3>
+              <h3>Зарахувати студента</h3>
               <form onSubmit={handleAddStudent} className="td-grid" style={{ marginTop: "15px" }}>
                 <div className="td-field">
-                  <label>Оберіть групу</label>
+                  <label>Група</label>
                   <select
                     className="td-select"
                     value={selectedGroup}
@@ -813,15 +949,16 @@ export default function TeacherDashboard() {
                     required
                   >
                     <option value="">-- Оберіть групу --</option>
-                    {groups.map((g) => (
+                    {filteredGroups.map((g: any) => (
                       <option key={g.id} value={g.id}>
-                        {g.name}
+                        {g.name} {g.faculty ? `(${g.faculty})` : ""}
                       </option>
                     ))}
                   </select>
                 </div>
+
                 <div className="td-field">
-                  <label>Електронна пошта студента</label>
+                  <label>Email студента</label>
                   <input
                     type="email"
                     className="td-select"
@@ -832,6 +969,7 @@ export default function TeacherDashboard() {
                     required
                   />
                 </div>
+
                 <div style={{ display: "flex", alignItems: "flex-end" }}>
                   <button type="submit" className="td-btn-submit" style={{ margin: 0, width: "100%" }}>
                     Додати до групи
@@ -854,7 +992,7 @@ export default function TeacherDashboard() {
                     required
                   >
                     <option value="">-- Виберіть групу --</option>
-                    {groups.map((g) => (
+                    {filteredGroups.map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name}
                       </option>
@@ -946,7 +1084,7 @@ export default function TeacherDashboard() {
             <div className="td-form">
               <h3>Перегляд журналу оцінок за групами:</h3>
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", margin: "15px 0" }}>
-                {groups.map((g) => (
+                {filteredGroups.map((g) => (
                   <button
                     key={g.id}
                     className="td-btn-new"
@@ -1100,5 +1238,6 @@ export default function TeacherDashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }
