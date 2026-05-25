@@ -15,16 +15,16 @@ export const apiClient = {
       headers,
     });
 
+    const result = await response.json().catch(() => ({}));
+
     if (response.status === 401) {
       localStorage.removeItem("token");
       window.location.href = "/login";
       throw new Error("Сесія застаріла. Будь ласка, увійдіть знову.");
     }
 
-    const result = await response.json();
-
     if (!response.ok) {
-      throw new Error(result.error || "Сталася помилка при запиті");
+      throw new Error(result.error || result.message || "Сталася помилка при запиті");
     }
 
     return result as T;

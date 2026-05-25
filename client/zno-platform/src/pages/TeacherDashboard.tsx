@@ -44,6 +44,29 @@ interface NewQuestion {
   options: OptionField[];
 }
 
+interface Assignment {
+  id: string;
+  group: { name: string } | null;
+  subject: { name: string } | null;
+  topic: { name: string } | null;
+  due_date?: string | null;
+  created_at: string;
+}
+
+const formatDateTime = (dateString: string | null | undefined) => {
+  if (!dateString) return null;
+  return new Date(dateString).toLocaleString("uk-UA", {
+    timeZone: "Europe/Kyiv",
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+};
+
+const isOverdue = (dueDate: string | null | undefined) => {
+  if (!dueDate) return false;
+  return new Date(dueDate) < new Date();
+};
+
 type MainTab = "questions" | "groups" | "assignments" | "analytics" | "review";
 
 const QUESTION_TYPE_LABELS: Record<string, string> = {
@@ -102,6 +125,9 @@ export default function TeacherDashboard() {
   const [assignSubjectId, setAssignSubjectId] = useState("");
   const [assignTopicId, setAssignTopicId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [editingDueDateId, setEditingDueDateId] = useState<string | null>(null);
+  const [editingDueDateValue, setEditingDueDateValue] = useState("");
   const [analytics, setAnalytics] = useState<any>(null);
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
   const [studentsModalOpen, setStudentsModalOpen] = useState(false);
@@ -134,6 +160,15 @@ export default function TeacherDashboard() {
       setAssignSubjectId(subjects[0].id);
     }
   }, [subjects]);
+
+  const fetchAssignments = async () => {
+    try {
+      const data = await apiClient.request<{ assignments: Assignment[] }>("/assignments");
+      setAssignments(data.assignments || []);
+    } catch (err) {
+      console.error("Помилка завантаження призначень:", err);
+    }
+  };
 
   useEffect(() => {
     async function fetchAllData() {
@@ -178,6 +213,7 @@ export default function TeacherDashboard() {
 
         await fetchGroupsData();
         await fetchPendingReviewsData();
+        await fetchAssignments();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Невідома помилка");
       } finally {
@@ -393,6 +429,60 @@ export default function TeacherDashboard() {
       setDueDate("");
     } catch (err: any) {
       alert(err.message || "Помилка призначення");
+    }
+  };
+
+  const handleClearDueDate = async (assignmentId: string) => {
+    if (!confirm("Скасувати дедлайн для цього призначення?")) return;
+    try {
+      await apiClient.request(`/assignments/${assignmentId}/due-date`, {
+        method: "PATCH",
+        body: JSON.stringify({ dueDate: null }),
+      });
+      setAssignments(prev =>
+        prev.map(a => a.id === assignmentId ? { ...a, due_date: null } : a)
+      );
+    } catch (err: any) {
+      alert(`Помилка: ${err.message}`);
+    }
+  };
+
+  const handleSaveDueDate = async (assignmentId: string) => {
+    try {
+      const newDueDate = editingDueDateValue ? new Date(editingDueDateValue).toISOString() : null;
+      await apiClient.request(`/assignments/${assignmentId}/due-date`, {
+        method: "PATCH",
+        body: JSON.stringify({ dueDate: newDueDate }),
+      });
+      setAssignments(prev =>
+        prev.map(a => a.id === assignmentId ? { ...a, due_date: newDueDate } : a)
+      );
+      setEditingDueDateId(null);
+      setEditingDueDateValue("");
+    } catch (err: any) {
+      alert(`Помилка: ${err.message}`);
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string, groupName: string) => {
+    if (!confirm(`Скасувати призначення для групи "${groupName}"? Цю дію не можна відмінити.`)) return;
+    try {
+      await apiClient.request(`/assignments/${assignmentId}`, { method: "DELETE" });
+      setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+    } catch (err: any) {
+      alert(`Помилка: ${err.message}`);
+    }
+  };
+
+  const startEditDueDate = (a: Assignment) => {
+    setEditingDueDateId(a.id);
+    if (a.due_date) {
+      const local = new Date(a.due_date);
+      const offset = local.getTimezoneOffset();
+      const adjusted = new Date(local.getTime() - offset * 60000);
+      setEditingDueDateValue(adjusted.toISOString().slice(0, 16));
+    } else {
+      setEditingDueDateValue("");
     }
   };
 
@@ -1077,6 +1167,105 @@ export default function TeacherDashboard() {
                   🚀 Надіслати призначення групі
                 </button>
               </form>
+              <hr style={{ border: "1px solid var(--td-surface-2)", margin: "30px 0" }} />
+              <h3 style={{ marginBottom: "16px" }}>
+                Активні призначення
+                <span style={{ marginLeft: "10px", fontSize: "0.9rem", color: "var(--td-text-muted)", fontWeight: "normal" }}>
+                  ({assignments.length})
+                </span>
+              </h3>
+
+              {assignments.length === 0 ? (
+                <p style={{ color: "var(--td-text-muted)", fontStyle: "italic" }}>Ще немає призначених тестів.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {assignments.map(a => {
+                    const overdue = isOverdue(a.due_date);
+                    const isEditingThis = editingDueDateId === a.id;
+                    return (
+                      <div key={a.id} style={{
+                        padding: "16px",
+                        background: "var(--td-surface)",
+                        borderRadius: "10px",
+                        border: overdue ? "1px solid #ef4444" : "1px solid var(--td-surface-2)",
+                        display: "flex", flexDirection: "column", gap: "10px"
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" }}>
+                          <div>
+                            <span style={{ fontSize: "1rem", fontWeight: "bold", color: "var(--td-accent)" }}>
+                              👥 {a.group?.name ?? "—"}
+                            </span>
+                            <span style={{ margin: "0 8px", color: "var(--td-text-muted)" }}>→</span>
+                            <span style={{ fontSize: "0.95rem", color: "var(--td-text)" }}>
+                              {a.topic
+                                ? <>📌 <strong>{a.topic.name}</strong> <span style={{ color: "var(--td-text-muted)", fontSize: "0.85rem" }}>(тема)</span></>
+                                : <>📚 <strong>{a.subject?.name ?? "Весь предмет"}</strong> <span style={{ color: "var(--td-text-muted)", fontSize: "0.85rem" }}>(предмет)</span></>
+                              }
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteAssignment(a.id, a.group?.name ?? "—")}
+                            style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+                          >
+                            🗑 Скасувати тест
+                          </button>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)" }}>⏰ Дедлайн:</span>
+                          {isEditingThis ? (
+                            <>
+                              <input
+                                type="datetime-local"
+                                value={editingDueDateValue}
+                                onChange={(e) => setEditingDueDateValue(e.target.value)}
+                                style={{ padding: "4px 8px", borderRadius: "6px", border: "none", fontSize: "0.85rem" }}
+                              />
+                              <button onClick={() => handleSaveDueDate(a.id)}
+                                style={{ background: "#166534", color: "#86efac", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontSize: "0.8rem" }}>
+                                ✓ Зберегти
+                              </button>
+                              <button onClick={() => { setEditingDueDateId(null); setEditingDueDateValue(""); }}
+                                style={{ background: "var(--td-surface-2)", color: "var(--td-text)", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontSize: "0.8rem" }}>
+                                Відміна
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {a.due_date ? (
+                                <span style={{
+                                  fontSize: "0.9rem", fontWeight: "500",
+                                  color: overdue ? "#f87171" : "#34d399",
+                                  background: overdue ? "#450a0a" : "#064e3b",
+                                  padding: "2px 8px", borderRadius: "4px"
+                                }}>
+                                  {formatDateTime(a.due_date)}{overdue && " ⚠️ Прострочено"}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)", fontStyle: "italic" }}>Без дедлайну</span>
+                              )}
+                              <button onClick={() => startEditDueDate(a)}
+                                style={{ background: "var(--td-surface-2)", color: "var(--td-accent)", border: "none", borderRadius: "6px", padding: "3px 8px", cursor: "pointer", fontSize: "0.78rem" }}>
+                                ✏️ Змінити
+                              </button>
+                              {a.due_date && (
+                                <button onClick={() => handleClearDueDate(a.id)}
+                                  style={{ background: "#451a03", color: "#fdba74", border: "none", borderRadius: "6px", padding: "3px 8px", cursor: "pointer", fontSize: "0.78rem" }}>
+                                  ✕ Скасувати дедлайн
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        <div style={{ fontSize: "0.75rem", color: "var(--td-text-muted)" }}>
+                          Створено: {formatDateTime(a.created_at)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

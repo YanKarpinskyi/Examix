@@ -116,11 +116,13 @@ function Dashboard() {
                       <div className="subject-icon">📝</div>
                       <h3 style={{ marginTop: "10px" }}>{a.topic?.name || a.subject?.name || "Тест"}</h3>
                       <p style={{ fontSize: "0.9rem", color: "#4b5563" }}>Група: {a.group?.name}</p>
-                      {a.due_date && (
-                        <p style={{ fontSize: "0.85rem", color: "#ef4444", fontWeight: "500" }}>
-                          Дедлайн: {formatDateTime(a.due_date)}
-                        </p>
-                      )}
+                      <p style={{ fontSize: "0.85rem", marginTop: "6px", fontWeight: "500" }}>
+                        {a.due_date ? (
+                          <span style={{color: "#ef4444"}}>Дедлайн: {formatDateTime(a.due_date)}</span>
+                        ) : (
+                          <span style={{ color: "#3b82f6", fontStyle: "italic" }}>без дедлайну</span>
+                        )}
+                      </p>
                       <button 
                         className="select-subject-btn" 
                         style={{ marginTop: "12px", width: "100%" }} 

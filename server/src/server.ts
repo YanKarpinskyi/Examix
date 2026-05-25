@@ -51,8 +51,6 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
     const { email, password, username, groupId } = req.body;
     const role = detectRoleByEmail(email);
 
-    // 1. Створюємо користувача в Supabase Auth
-    // Тригер у БД автоматично створить рядок у таблиці 'profiles'
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -64,13 +62,6 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
     
     const userId = authData.user.id;
 
-    // --- КРОК 2 ВИДАЛЕНО/ЗАКОМЕНТОВАНО ---
-    // Більше не потрібно вручну вставляти в 'profiles', 
-    // бо це робить тригер БД (handle_new_user).
-    // --------------------------------------
-
-    // 3. Додавання до групи
-    // Важливо: ми використовуємо userId, отриманий від Supabase Auth
     if (role === "student" && groupId) {
       const { error: groupError } = await supabaseAdmin
         .from("group_students")
@@ -90,11 +81,9 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
   }
 });
 
-// Замініть ваш поточний логін на це:
 app.post("/api/auth/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
   
-  // Використовуємо офіційний SDK для входу
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({
     email,
     password,
@@ -102,7 +91,6 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 
   if (error) return res.status(400).json({ error: "Невірний email або пароль" });
 
-  // Отримуємо профіль користувача з вашої таблиці
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("*")
@@ -146,70 +134,10 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Response) => {
-//   const userId = (req as any).userId;
-  
-//   try {
-//     // 1. Отримуємо групи, до яких належить студент
-//     const { data: studentGroups, error: groupError } = await supabaseAdmin
-//       .from("group_students")
-//       .select(`
-//         groups!group_students_group_id_fkey (
-//           id,
-//           name
-//         )
-//       `)
-//       .eq("student_id", userId);
-
-//     if (groupError) throw groupError;
-
-//     // 2. Отримуємо всі предмети
-//     const { data: subjects, error: subError } = await supabaseAdmin
-//       .from("subjects")
-//       .select("*")
-//       .order("name");
-
-//     if (subError) throw subError;
-
-//     // 3. Формуємо масив ID груп
-//     // studentGroups виглядає як: [{ groups: { id: "...", name: "..." } }, ...]
-//     const groupIds = (studentGroups || [])
-//       .map((g: any) => g.groups?.id)
-//       .filter(Boolean);
-
-//     // 4. Отримуємо призначення (assignments)
-//     let assignments: any[] = [];
-//     if (groupIds.length > 0) {
-//       const { data: assignData, error: assignError } = await supabaseAdmin
-//         .from("group_assignments")
-//         .select(`
-//           id, 
-//           due_date, 
-//           subjects (id, name), 
-//           topics (id, name), 
-//           groups!group_students_group_id_fkey (id, name)
-//         `)
-//         .in("group_id", groupIds);
-
-//       if (assignError) throw assignError;
-//       assignments = assignData || [];
-//     }
-
-//     return res.json({ 
-//       groups: (studentGroups || []).map((g: any) => g.groups).filter(Boolean), 
-//       subjects: subjects || [], 
-//       assignments 
-//     });
-//   } catch (err: any) {
-//     console.error("❌ Помилка налаштування дашборду:", err);
-//     return res.status(500).json({ error: "Помилка завантаження дашборду", details: err.message });
-//   }
-// });
-
 app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Response) => {
     try {
         const { user_id, topic_id, subject_id, mode, answers } = req.body;
-        const userId = (req as any).userId; // Перевіряємо з токена для безпеки
+        const userId = (req as any).userId;
 
         const { data, error } = await supabaseAdmin
             .from('test_attempts')
@@ -219,7 +147,7 @@ app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Resp
                 subject_id: subject_id,
                 mode: mode,
                 answers: answers,
-                score: 0, // Тут ви можете додати логіку підрахунку балів
+                score: 0,
                 total_questions: Object.keys(answers).length
             }])
             .select()
@@ -546,6 +474,8 @@ app.get("/api/groups/:groupId/students", requireAuth, requireRole(["teacher", "a
 });
 
 app.get("/api/assignments", requireAuth, async (req, res) => {
+  console.log("📋 [GET ASSIGNMENTS] запит від userId:", (req as any).userId);
+  
   const { data, error } = await supabaseAdmin
     .from("group_assignments")
     .select(`
@@ -555,6 +485,8 @@ app.get("/api/assignments", requireAuth, async (req, res) => {
       topic:topic_id (name)
     `)
     .order("created_at", { ascending: false });
+
+  console.log("📋 [GET ASSIGNMENTS] data:", data?.length ?? 0, "error:", error);
     
   if (error) return res.status(500).json({ error: error.message });
   res.json({ assignments: data });
@@ -630,6 +562,33 @@ app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), asy
     console.error("❌ Server error:", err);
     return res.status(500).json({ error: "Помилка сервера", details: err.message });
   }
+});
+
+app.patch("/api/assignments/:id/due-date", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { dueDate } = req.body; 
+
+  const { data, error } = await supabaseAdmin
+    .from("group_assignments")
+    .update({ due_date: dueDate ?? null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return res.status(400).json({ error: error.message });
+  return res.json({ assignment: data });
+});
+
+app.delete("/api/assignments/:id", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const { error } = await supabaseAdmin
+    .from("group_assignments")
+    .delete()
+    .eq("id", id);
+
+  if (error) return res.status(400).json({ error: error.message });
+  return res.json({ success: true });
 });
 
 app.get("/api/student/topics/:topicId/questions", requireAuth, async (req: Request, res: Response) => {

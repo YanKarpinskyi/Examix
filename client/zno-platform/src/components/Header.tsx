@@ -4,12 +4,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
     const [hovered, setHovered] = useState(false);
-
-    const { user, logout } = useAuth(); 
+    const [isAdminToggleHovered, setIsAdminToggleHovered] = useState(false);
+    const [isAdminToggleActive, setIsAdminToggleActive] = useState(false);
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+    
+    const isAdminPanel = location.pathname.startsWith('/admin');
 
     return (
         <header className="main-header" style={{ 
@@ -22,22 +25,10 @@ export default function Header() {
         }}>
             <div 
                 onClick={() => navigate('/dashboard')} 
-                style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px', 
-                    cursor: 'pointer' 
-                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             >
-                <img 
-                    src="/favicon.svg" 
-                    style={{ width: '35px', height: '35px' }} 
-                />
-                <span style={{ 
-                    fontWeight: 800, 
-                    fontSize: '1.5rem', 
-                    color: '#333' 
-                }}>
+                <img src="/favicon.svg" style={{ width: '35px', height: '35px' }} />
+                <span style={{ fontWeight: 800, fontSize: '1.5rem', color: '#333' }}>
                     Exami<span style={{ color: '#007bff' }}>X</span>
                 </span>
             </div>
@@ -45,22 +36,37 @@ export default function Header() {
             <nav>
                 {user ? (
                     <div className="user-controls" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        {(user.role === 'teacher' || user.role === 'admin') && (
-                            <button 
-                                onClick={() => navigate('/teacher/panel')} 
-                                className="teacher-link"
+                        
+                        {user.role === 'admin' && (
+                            <button
+                                onClick={() => navigate(isAdminPanel ? '/teacher/panel' : '/admin')}
+                                onMouseEnter={() => setIsAdminToggleHovered(true)}
+                                onMouseLeave={() => {
+                                setIsAdminToggleHovered(false);
+                                setIsAdminToggleActive(false);
+                                }}
+                                onMouseDown={() => setIsAdminToggleActive(true)}
+                                onMouseUp={() => setIsAdminToggleActive(false)}
                                 style={{
-                                    padding: '5px 12px',
-                                    borderRadius: '6px',
-                                    border: '1px solid #007bff',
-                                    background: 'none',
-                                    color: '#007bff',
-                                    cursor: 'pointer'
+                                padding: '5px 12px',
+                                fontSize:'0.8rem',
+                                fontWeight:'600',
+                                borderRadius: '6px',
+                                border: `3px solid ${isAdminPanel ? '#007bff' : '#ef4444'}`,
+                                background: isAdminToggleActive
+                                    ? (isAdminPanel ? '#cfe3ff' : '#fecaca')
+                                    : isAdminToggleHovered
+                                    ? (isAdminPanel ? '#e3f2ff' : '#fee2e2')
+                                    : 'none',
+                                color: isAdminPanel ? '#007bff' : '#ef4444',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                transform: isAdminToggleActive ? 'scale(0.97)' : 'scale(1)',
                                 }}
                             >
-                                Панель викладача
+                                {isAdminPanel ? '👨‍🏫 Панель викладача' : '🛡️ Адмін панель'}
                             </button>
-                        )}
+                            )}
                         
                         <div className="user-meta" style={{ textAlign: 'right' }}>
                             <span style={{ fontWeight: 500, display: 'block' }}>{user.username}</span>
@@ -68,6 +74,7 @@ export default function Header() {
                                 {user.role}
                             </small>
                         </div>
+                        
                         <button 
                             onClick={logout} 
                             onMouseEnter={() => setHovered(true)}
