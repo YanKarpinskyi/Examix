@@ -287,15 +287,24 @@
   padding: 14px;
   border: none;
   border-radius: var(--td-radius-sm);
-  background: var(--td-accent);
+  // background: var(--td-accent);
+  background: #8da366;
   color: #0f1117;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s, opacity 0.2s;
 
+  &:active:not(:disabled) {
+    // background: #7a8f55; 
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(141, 163, 102, 0.2);
+  }
+
   &:hover:not(:disabled) {
-    background: #d9b87a;
+    // background: #d9b87a;
+    background: #a2b87c;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(200, 169, 110, 0.3);
+    // box-shadow: 0 6px 20px rgba(200, 169, 110, 0.3);
+    box-shadow: 0 6px 20px rgba(141, 163, 102, 0.3);
   }
 
   &:disabled {
