@@ -527,7 +527,7 @@ app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), asy
   }
 
   try {
-    const formattedDueDate = dueDate ? `${dueDate}:00Z` : null;
+    const formattedDueDate = dueDate ?? null;
 
     const insertPayload = {
       group_id: groupId,

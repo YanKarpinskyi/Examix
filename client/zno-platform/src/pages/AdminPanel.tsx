@@ -1,4 +1,3 @@
-// AdminDashboard.tsx
 import { useState } from "react";
 // import { useAuth } from "../hooks/useAuth";
 import "./TeacherDashboard.scss";

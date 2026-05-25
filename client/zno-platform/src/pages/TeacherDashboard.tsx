@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import MathText from "../components/MathText";
 import StudentsModal from "../components/StudentsModal";
-import "./TeacherDashboard.scss";
+import AlertModal from '../components/AlertModal';
 import { apiClient } from "../services/apiClient";
+import "./TeacherDashboard.scss";
 
 interface OptionField {
   localId?: string;
@@ -85,6 +86,7 @@ const createEmptyOption = (isCorrect = false): OptionField => ({
 });
 
 export default function TeacherDashboard() {
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MainTab>("questions");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -396,7 +398,7 @@ export default function TeacherDashboard() {
         method: "POST",
         body: JSON.stringify({ email: studentEmail }),
       });
-      alert("Студента додано успішно!");
+      setAlertMessage("Студента додано успішно!");
       setStudentEmail("");
     } catch (err: any) {
       alert(err.message || "Помилка додавання студента");
@@ -417,7 +419,7 @@ export default function TeacherDashboard() {
       groupId: selectedGroup,
       subjectId: assignSubjectId,
       topicId: assignmentType === "topic" ? assignTopicId : null,
-      dueDate: dueDate || null,
+      dueDate: dueDate ? new Date(dueDate).toISOString() : null,
     };
 
     try {
@@ -425,7 +427,7 @@ export default function TeacherDashboard() {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      alert("Тест/Тему успішно призначено для групи!");
+      setAlertMessage("Тест/Тему успішно призначено для групи!");
       setDueDate("");
     } catch (err: any) {
       alert(err.message || "Помилка призначення");
@@ -1426,6 +1428,11 @@ export default function TeacherDashboard() {
           )}
         </div>
       </div>
+      <AlertModal 
+                isOpen={!!alertMessage} 
+                message={alertMessage || ""} 
+                onClose={() => setAlertMessage(null)} 
+      />
     </div>
     </>
   );
