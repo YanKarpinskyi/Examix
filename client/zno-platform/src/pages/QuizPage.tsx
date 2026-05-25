@@ -101,6 +101,25 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
   }, [topicId, subjectId, isErrorMode, mode]);
 
   useEffect(() => {
+      supabase.auth.getSession().then(({ data }) => {
+          console.log("🔍 Перевірка сесії при завантаженні сторінки:", data.session?.user?.id);
+      });
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+        const { data } = await supabase.auth.getSession();
+        console.log("🔍 СЕСІЯ В ЛОКАЛЬНОМУ СХОВИЩІ:", data.session);
+        if (data.session) {
+            console.log("✅ Користувач залогінений:", data.session.user.id);
+        } else {
+            console.log("❌ Користувача немає в сесії!");
+        }
+    };
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
     if (loading || timeLeft <= 0) return;
 
     const timer = setInterval(() => {
@@ -122,72 +141,136 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
   }, []);
 
   const handleFinish = () => {
-    const unanswered = questions.filter(q => !answers[q.id]);
-    if (unanswered.length > 0) {
-      setUnansweredCount(unanswered.length);
-      setIsModalOpen(true);
-      return;
-    }
-    processFinish();
+      console.log("🔥 Кнопка натиснута!");
+      
+      // Перевіримо, чи взагалі працює умова
+      const unanswered = questions.filter(q => !answers[q.id]);
+      console.log("Кількість питань:", questions.length);
+      console.log("Кількість відповідей:", Object.keys(answers).length);
+
+      if (unanswered.length > 0) {
+          setUnansweredCount(unanswered.length);
+          setIsModalOpen(true);
+          console.log("Модалка відкрита");
+      } else {
+          console.log("Викликаю processFinish напряму");
+          processFinish();
+      }
   };
+
+  // const processFinish = async () => {
+  //   console.log("🚀 processFinish START");
+  //   try {
+  //     const { data: { user } } = await supabase.auth.getUser();
+  //     console.log("👤 User:", user?.id);
+  //     if (!user) {
+  //         console.error("❌ Помилка: Користувач не авторизований або сесія закінчилася!");
+  //         alert("Ваша сесія завершилася. Будь ласка, увійдіть знову.");
+  //         return;
+  //     }
+
+  //     const isCorrect = (question: any) => {
+  //       const uAns = answers[question.id];
+  //       const cAns = question.correct_answer;
+  //       if (uAns === undefined || uAns === null) return false;
+  //       return JSON.stringify(uAns) === JSON.stringify(cAns);
+  //     };
+
+  //     const correctQuestions = questions.filter(isCorrect);
+  //     const wrongQuestions = questions.filter(q => !isCorrect(q));
+
+  //     const { data: attempt, error: attemptError } = await supabase
+  //       .from('test_attempts')
+  //       .insert({
+  //         user_id: user.id,
+  //         topic_id: mode === 'nmt' ? null : topicId,
+  //         subject_id: subjectId,
+  //         mode: mode,
+  //         score: correctQuestions.length,
+  //         total_questions: questions.length,
+  //         answers: answers,
+  //       })
+  //       .select()
+  //       .single();
+
+  //     if (attemptError) {
+  //       console.error("Error saving attempt:", attemptError);
+  //     }
+
+  //     if (isErrorMode && correctQuestions.length > 0) {
+  //       await supabase
+  //         .from('user_errors')
+  //         .delete()
+  //         .in('question_id', correctQuestions.map(q => q.id));
+  //     }
+
+  //     if (!isErrorMode && mode !== 'nmt' && wrongQuestions.length > 0) {
+  //       const errorsToSave = wrongQuestions.map(q => ({
+  //         user_id: user.id,
+  //         question_id: q.id,
+  //         topic_id: topicId,
+  //       }));
+  //       await supabase.from('user_errors').upsert(errorsToSave);
+  //     }
+
+  //     setIsModalOpen(false);
+  //     if (attempt) navigate(`/quiz-result/${attempt.id}`);
+  //   } catch (err) {
+  //     console.error("❌ processFinish CRASH:", err);
+  //   }
+  // };
 
   const processFinish = async () => {
+    console.log("🚀 processFinish START");
+
+    // 1. Перевірка користувача з localStorage
+    const userString = localStorage.getItem("user");
+    if (!userString) {
+        console.error("❌ Користувач не авторизований (немає даних в localStorage)!");
+        alert("Ваша сесія завершилася. Будь ласка, увійдіть знову.");
+        return;
+    }
+
+    const user = JSON.parse(userString);
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+        // 2. Підготовка даних для бекенду
+        const payload = {
+            user_id: user.id,
+            topic_id: mode === 'nmt' ? null : topicId,
+            subject_id: subjectId,
+            mode: mode,
+            answers: answers,
+        };
 
-      const isCorrect = (question: any) => {
-        const uAns = answers[question.id];
-        const cAns = question.correct_answer;
-        if (uAns === undefined || uAns === null) return false;
-        return JSON.stringify(uAns) === JSON.stringify(cAns);
-      };
+        // 3. Відправка на бекенд
+        const result = await apiClient.request<{ attemptId: string }>(
+            '/student/submit-test', 
+            {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            }
+        );
 
-      const correctQuestions = questions.filter(isCorrect);
-      const wrongQuestions = questions.filter(q => !isCorrect(q));
+        console.log("✅ Результат успішно збережено:", result);
 
-      const { data: attempt, error: attemptError } = await supabase
-        .from('test_attempts')
-        .insert({
-          user_id: user.id,
-          topic_id: mode === 'nmt' ? null : topicId,
-          subject_id: subjectId,
-          mode: mode,
-          score: correctQuestions.length,
-          total_questions: questions.length,
-          answers: answers,
-        })
-        .select()
-        .single();
+        // 4. Закриття модалки та перехід на результат
+        setIsModalOpen(false);
+        
+        if (result?.attemptId) {
+            navigate(`/quiz-result/${result.attemptId}`);
+        } else {
+            console.warn("⚠️ attemptId не повернувся з сервера");
+            // Можна додати запасний варіант, наприклад navigate('/profile') тощо
+        }
 
-      if (attemptError) {
-        console.error("Error saving attempt:", attemptError);
-      }
-
-      if (isErrorMode && correctQuestions.length > 0) {
-        await supabase
-          .from('user_errors')
-          .delete()
-          .in('question_id', correctQuestions.map(q => q.id));
-      }
-
-      if (!isErrorMode && mode !== 'nmt' && wrongQuestions.length > 0) {
-        const errorsToSave = wrongQuestions.map(q => ({
-          user_id: user.id,
-          question_id: q.id,
-          topic_id: topicId,
-        }));
-        await supabase.from('user_errors').upsert(errorsToSave);
-      }
-
-      setIsModalOpen(false);
-      if (attempt) navigate(`/quiz-result/${attempt.id}`);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+        console.error("❌ Помилка при збереженні тесту:", err);
+        alert(err.message || "Сталася помилка при завершенні тесту. Спробуйте ще раз.");
     }
   };
 
-    if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner />;
 
   if (questions.length === 0) {
     return (
@@ -253,8 +336,15 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
         isOpen={isModalOpen} 
         title="Не всі питання заповнені" 
         message={`Ви пропустили ${unansweredCount} питань. Все одно завершити?`} 
-        onConfirm={() => setIsModalOpen(false)} 
-        onCancel={processFinish} 
+        onConfirm={() => {
+            console.log("Клік: Повернутися");
+            setIsModalOpen(false);
+        }}
+        onCancel={() => {
+            console.log("Клік: Завершити зараз -> запускаю processFinish");
+            setIsModalOpen(false); // Спочатку закриваємо
+            processFinish();       // Потім виконуємо логіку
+        }}
       />
     </div>
   );

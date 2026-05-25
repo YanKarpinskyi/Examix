@@ -206,6 +206,34 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
 //   }
 // });
 
+app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { user_id, topic_id, subject_id, mode, answers } = req.body;
+        const userId = (req as any).userId; // Перевіряємо з токена для безпеки
+
+        const { data, error } = await supabaseAdmin
+            .from('test_attempts')
+            .insert([{
+                user_id: userId,
+                topic_id: topic_id,
+                subject_id: subject_id,
+                mode: mode,
+                answers: answers,
+                score: 0, // Тут ви можете додати логіку підрахунку балів
+                total_questions: Object.keys(answers).length
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return res.status(201).json({ attemptId: data.id });
+    } catch (err: any) {
+        console.error("❌ Помилка при збереженні тесту:", err);
+        return res.status(500).json({ error: "Не вдалося зберегти результати тесту" });
+    }
+});
+
 app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   console.log(`📊 Dashboard запит від userId: ${userId}`);
