@@ -573,10 +573,6 @@ export default function TeacherDashboard() {
         <div className="td-inner">
           <div className="td-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "15px" }}>
             <h1>👨‍🏫 Панель викладача Examix</h1>
-            {/* <p style={{ color: "var(--td-text-muted)", margin: 0 }}>
-              Керування питаннями, групами, призначеннями та статистикою
-            </p> */}
-
             <div style={{
               display: "flex",
               flexWrap: "wrap",
@@ -590,7 +586,6 @@ export default function TeacherDashboard() {
                 { id: "groups" as const, icon: "👥", title: "Навчальні групи"},
                 { id: "assignments" as const, icon: "📅", title: "Призначення тестів"},
                 { id: "analytics" as const, icon: "📊", title: "Статистика студентів"},
-                // { id: "review" as const, icon: "📝", title: "Відкриті відповіді"},
               ] as const).map((item) => (
                 <div
                   key={item.id}
@@ -619,14 +614,6 @@ export default function TeacherDashboard() {
                   <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", fontWeight: 600 }}>
                     {item.title}
                   </h3>
-                  <p style={{
-                    color: "var(--td-text-muted)",
-                    fontSize: "0.82rem",
-                    lineHeight: "1.4",
-                    margin: 0,
-                    // flexGrow: 1,
-                  }}>
-                  </p>
                 </div>
               ))}
             </div>
@@ -738,9 +725,6 @@ export default function TeacherDashboard() {
                 )}
 
                 <div className="td-form" style={{ gap: "14px", marginBottom: "20px" }}>
-                  {/* <span className="td-options-label" style={{ margin: 0 }}>
-                    Каскадний пошук та фільтрація тестів
-                  </span> */}
                   <div className="td-grid">
                     <div className="td-field">
                       <label>1. Виберіть предмет</label>
@@ -1012,7 +996,6 @@ export default function TeacherDashboard() {
                     value={selectedFaculty}
                     onChange={(e) => {
                       setSelectedFaculty(e.target.value);
-                      console.log("Обрано факультет:", e.target.value);
                     }}
                   >
                     <option value="">Всі факультети</option>
@@ -1375,7 +1358,8 @@ export default function TeacherDashboard() {
 
             {activeTab === "analytics" && (
               <div className="td-form">
-                <h3>Перегляд журналу оцінок за групами:</h3>
+                <h2>📊 Статистика успішності</h2>
+
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", margin: "15px 0" }}>
                   {filteredGroups.map((g) => (
                     <button
@@ -1395,63 +1379,190 @@ export default function TeacherDashboard() {
                   )}
                 </div>
 
-                {analytics && (
-                  <div style={{ marginTop: "20px" }}>
-                    <h4 style={{ marginBottom: "10px" }}>Кількість студентів у групі: {analytics.students?.length || 0}</h4>
+                {analytics && (() => {
+                  const { students, sessions, subjectStats, topicStats } = analytics;
+                  const totalAttempts = sessions?.length ?? 0;
+                  const avgPercent = totalAttempts > 0
+                    ? Math.round(sessions.reduce((sum: number, s: any) => sum + s.percentage, 0) / totalAttempts)
+                    : 0;
+                  const attemptsPerStudent = sessions?.reduce((acc: Record<string, number>, s: any) => {
+                    acc[s.user_id] = (acc[s.user_id] || 0) + 1;
+                    return acc;
+                  }, {}) ?? {};
+                  const sortedCounts = Object.values(attemptsPerStudent).sort((a, b) => (b as number) - (a as number));
+                  const threshold = sortedCounts[Math.min(4, sortedCounts.length - 1)] as number ?? 0;
+                  const uniqueStudentsActive = Object.values(attemptsPerStudent).filter((count) => (count as number) >= threshold).length;
 
-                    <div style={{ overflowX: "auto" }}>
-                      <table
-                        style={{ width: "100%", borderCollapse: "collapse", background: "var(--td-surface)", borderRadius: "6px" }}
-                      >
-                        <thead>
-                          <tr style={{ background: "var(--td-surface-2)", textAlign: "left" }}>
-                            <th style={{ padding: "12px" }}>Студент</th>
-                            <th style={{ padding: "12px" }}>Об'єкт тестування</th>
-                            <th style={{ padding: "12px" }}>Набраний бал (%)</th>
-                            <th style={{ padding: "12px" }}>Статус</th>
-                            <th style={{ padding: "12px" }}>Дата спроби</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analytics.sessions?.map((s: any) => (
-                            <tr key={s.id} style={{ borderBottom: "1px solid var(--td-surface-2)" }}>
-                              <td style={{ padding: "12px" }}>{s.profiles?.username || "Невідомий користувач"}</td>
-                              <td style={{ padding: "12px" }}>{s.test?.title || "Тест по темі"}</td>
-                              <td style={{ padding: "12px", fontWeight: "bold", color: "var(--td-success)" }}>{s.score}</td>
-                              <td style={{ padding: "12px" }}>
-                                <span
-                                  style={{
-                                    padding: "4px 8px",
-                                    borderRadius: "4px",
-                                    fontSize: "0.85rem",
-                                    background:
-                                      s.status === "completed" ? "rgba(40, 167, 69, 0.2)" : "rgba(255, 193, 7, 0.2)",
-                                    color: s.status === "completed" ? "#28a745" : "#ffc107",
-                                  }}
-                                >
-                                  {s.status || "completed"}
-                                </span>
-                              </td>
-                              <td style={{ padding: "12px", fontSize: "0.9rem" }}>
-                                {new Date(s.created_at).toLocaleDateString()}
-                              </td>
-                            </tr>
+                  return (
+                    <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "28px" }}>
+                      <section>
+                        <h3 style={{ marginBottom: "14px", borderBottom: "1px solid var(--td-surface-2)", paddingBottom: "8px" }}>
+                          Загальна статистика групи
+                        </h3>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "14px" }}>
+                          {[
+                            { label: "Студентів у групі", value: students?.length ?? 0, icon: "👥" },
+                            { label: "Активних студентів", value: uniqueStudentsActive, icon: "🎯" },
+                            { label: "Всього спроб", value: totalAttempts, icon: "📝" },
+                            { label: "Середній результат", value: `${avgPercent}%`, icon: "📈", color: avgPercent >= 70 ? "#34d399" : avgPercent >= 50 ? "#fbbf24" : "#f87171" },
+                          ].map((stat) => (
+                            <div key={stat.label} style={{
+                              background: "var(--td-surface)",
+                              border: "1px solid var(--td-surface-2)",
+                              borderRadius: "10px",
+                              padding: "16px",
+                              textAlign: "center",
+                            }}>
+                              <div style={{ fontSize: "1.8rem", marginBottom: "6px" }}>{stat.icon}</div>
+                              <div style={{ fontSize: "1.6rem", fontWeight: "700", color: (stat as any).color ?? "var(--td-accent)" }}>
+                                {stat.value}
+                              </div>
+                              <div style={{ fontSize: "0.8rem", color: "var(--td-text-muted)", marginTop: "4px" }}>{stat.label}</div>
+                            </div>
                           ))}
-                          {(!analytics.sessions || analytics.sessions.length === 0) && (
-                            <tr>
-                              <td
-                                colSpan={5}
-                                style={{ padding: "20px", textAlign: "center", color: "var(--td-text-muted)" }}
-                              >
-                                Студенти цієї групи ще не проходили призначених тестів.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                        </div>
+                      </section>
+
+                      {subjectStats?.length > 0 && (
+                        <section>
+                          <h3 style={{ marginBottom: "14px", borderBottom: "1px solid var(--td-surface-2)", paddingBottom: "8px" }}>
+                            По предметах
+                          </h3>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                            {subjectStats.map((s: any) => (
+                              <div key={s.id} style={{
+                                background: "var(--td-surface)",
+                                border: "1px solid var(--td-surface-2)",
+                                borderRadius: "8px",
+                                padding: "14px 18px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "16px",
+                                flexWrap: "wrap",
+                              }}>
+                                <div style={{ flex: 1, minWidth: "140px" }}>
+                                  <span style={{ fontWeight: "600" }}>{s.name}</span>
+                                  <span style={{ fontSize: "0.82rem", color: "var(--td-text-muted)", marginLeft: "8px" }}>
+                                    {s.attempts} спроб
+                                  </span>
+                                </div>
+                                <div style={{ width: "200px", background: "var(--td-surface-2)", borderRadius: "999px", height: "10px", flexShrink: 0 }}>
+                                  <div style={{
+                                    height: "10px",
+                                    borderRadius: "999px",
+                                    width: `${s.avgPercent}%`,
+                                    background: s.avgPercent >= 70 ? "#34d399" : s.avgPercent >= 50 ? "#fbbf24" : "#f87171",
+                                    transition: "width 0.4s ease",
+                                  }} />
+                                </div>
+                                <span style={{
+                                  fontWeight: "700",
+                                  minWidth: "44px",
+                                  textAlign: "right",
+                                  color: s.avgPercent >= 70 ? "#34d399" : s.avgPercent >= 50 ? "#fbbf24" : "#f87171",
+                                }}>
+                                  {s.avgPercent}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      )}
+
+                      {topicStats?.length > 0 && (
+                        <section>
+                          <h3 style={{ marginBottom: "14px", borderBottom: "1px solid var(--td-surface-2)", paddingBottom: "8px" }}>
+                            По темах <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)", fontWeight: 400 }}>(від слабких до сильних)</span>
+                          </h3>
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--td-surface)", borderRadius: "6px" }}>
+                              <thead>
+                                <tr style={{ background: "var(--td-surface-2)", textAlign: "left" }}>
+                                  <th style={{ padding: "10px 14px" }}>Тема</th>
+                                  <th style={{ padding: "10px 14px" }}>Предмет</th>
+                                  <th style={{ padding: "10px 14px", textAlign: "center" }}>Спроб</th>
+                                  <th style={{ padding: "10px 14px", textAlign: "center" }}>Прогрес</th>
+                                  <th style={{ padding: "10px 14px", textAlign: "right" }}>Середній %</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {topicStats.map((t: any) => (
+                                  <tr key={t.id} style={{ borderBottom: "1px solid var(--td-surface-2)" }}>
+                                    <td style={{ padding: "10px 14px", fontWeight: "500" }}>{t.name}</td>
+                                    <td style={{ padding: "10px 14px", color: "var(--td-text-muted)", fontSize: "0.88rem" }}>{t.subjectName}</td>
+                                    <td style={{ padding: "10px 14px", textAlign: "center" }}>{t.attempts}</td>
+                                    <td style={{ padding: "10px 14px" }}>
+                                      <div style={{ background: "var(--td-surface-2)", borderRadius: "999px", height: "8px" }}>
+                                        <div style={{
+                                          height: "8px",
+                                          borderRadius: "999px",
+                                          width: `${t.avgPercent}%`,
+                                          background: t.avgPercent >= 70 ? "#34d399" : t.avgPercent >= 50 ? "#fbbf24" : "#f87171",
+                                        }} />
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "700",
+                                      color: t.avgPercent >= 70 ? "#34d399" : t.avgPercent >= 50 ? "#fbbf24" : "#f87171" }}>
+                                      {t.avgPercent}%
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </section>
+                      )}
+
+                      <section>
+                        <h3 style={{ marginBottom: "14px", borderBottom: "1px solid var(--td-surface-2)", paddingBottom: "8px" }}>
+                          Журнал усіх спроб <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)", fontWeight: 400 }}>({totalAttempts})</span>
+                        </h3>
+                        {totalAttempts === 0 ? (
+                          <p style={{ color: "var(--td-text-muted)", fontStyle: "italic" }}>Студенти цієї групи ще не проходили тестів.</p>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--td-surface)", borderRadius: "6px" }}>
+                              <thead>
+                                <tr style={{ background: "var(--td-surface-2)", textAlign: "left" }}>
+                                  <th style={{ padding: "10px 14px" }}>Студент</th>
+                                  <th style={{ padding: "10px 14px" }}>Предмет</th>
+                                  <th style={{ padding: "10px 14px" }}>Тема</th>
+                                  <th style={{ padding: "10px 14px", textAlign: "center" }}>Бал</th>
+                                  <th style={{ padding: "10px 14px", textAlign: "center" }}>%</th>
+                                  <th style={{ padding: "10px 14px" }}>Дата</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sessions.map((s: any) => (
+                                  <tr key={s.id} style={{ borderBottom: "1px solid var(--td-surface-2)" }}>
+                                    <td style={{ padding: "10px 14px" }}>{s.profiles?.username ?? "—"}</td>
+                                    <td style={{ padding: "10px 14px", fontSize: "0.88rem", color: "var(--td-text-muted)" }}>{s.subjectName}</td>
+                                    <td style={{ padding: "10px 14px", fontSize: "0.88rem" }}>{s.topicName ?? <span style={{ color: "var(--td-text-muted)" }}>увесь предмет</span>}</td>
+                                    <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: "600" }}>
+                                      {s.score}/{s.total_questions}
+                                    </td>
+                                    <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                                      <span style={{
+                                        padding: "2px 8px", borderRadius: "4px", fontSize: "0.85rem", fontWeight: "600",
+                                        background: s.percentage >= 70 ? "rgba(52,211,153,0.15)" : s.percentage >= 50 ? "rgba(251,191,36,0.15)" : "rgba(248,113,113,0.15)",
+                                        color: s.percentage >= 70 ? "#34d399" : s.percentage >= 50 ? "#fbbf24" : "#f87171",
+                                      }}>
+                                        {s.percentage}%
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: "10px 14px", fontSize: "0.85rem", color: "var(--td-text-muted)" }}>
+                                      {new Date(s.created_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </section>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 

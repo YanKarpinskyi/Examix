@@ -707,32 +707,77 @@ app.get("/api/groups/:groupId/analytics", requireAuth, requireRole(["teacher", "
   try {
     const { data: students, error: sError } = await supabaseAdmin
       .from("group_students")
-      .select("student_id, profiles:student_id ( username, email )")
+      .select("student_id, profiles:student_id ( id, username, email )")
       .eq("group_id", groupId);
 
     if (sError) return res.status(400).json({ error: sError.message });
     const studentIds = students.map((s: any) => s.student_id);
 
+    if (studentIds.length === 0) {
+      return res.json({ students: [], sessions: [], subjectStats: [], topicStats: [] });
+    }
+
     const { data: attempts, error: attError } = await supabaseAdmin
       .from("test_attempts")
-      .select("id, score, created_at, mode, user_id, total_questions")
-      .in("user_id", studentIds);
+      .select(`
+        id, score, total_questions, created_at, mode, user_id,
+        topic:topic_id ( id, name, subject_id, subjects ( id, name ) ),
+        subject:subject_id ( id, name )
+      `)
+      .in("user_id", studentIds)
+      .order("created_at", { ascending: false });
 
     if (attError) return res.status(400).json({ error: attError.message });
 
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("id, username")
+      .select("id, username, email")
       .in("id", studentIds);
 
     const profileMap = new Map(profiles?.map((p: any) => [p.id, p]));
 
     const sessions = (attempts || []).map((a: any) => ({
       ...a,
-      profiles: profileMap.get(a.user_id) || { username: "Невідомий" }
+      profiles: profileMap.get(a.user_id) || { username: "Невідомий" },
+      percentage: a.total_questions > 0 ? Math.round((a.score / a.total_questions) * 100) : 0,
+      subjectName: a.topic?.subjects?.name ?? a.subject?.name ?? "НМТ симуляція",
+      topicName: a.topic?.name ?? null,
     }));
 
-    return res.json({ students, sessions });
+    const subjectMap: Record<string, { name: string; attempts: number; totalScore: number; totalQ: number }> = {};
+    for (const s of sessions) {
+      const key = s.topic?.subjects?.id ?? s.subject?.id ?? "nmt";
+      const name = s.subjectName;
+      if (!subjectMap[key]) subjectMap[key] = { name, attempts: 0, totalScore: 0, totalQ: 0 };
+      subjectMap[key].attempts++;
+      subjectMap[key].totalScore += s.score;
+      subjectMap[key].totalQ += s.total_questions;
+    }
+    const subjectStats = Object.entries(subjectMap).map(([id, v]) => ({
+      id,
+      name: v.name,
+      attempts: v.attempts,
+      avgPercent: v.totalQ > 0 ? Math.round((v.totalScore / v.totalQ) * 100) : 0,
+    }));
+
+    const topicMap: Record<string, { name: string; subjectName: string; attempts: number; totalScore: number; totalQ: number }> = {};
+    for (const s of sessions) {
+      if (!s.topic?.id) continue;
+      const key = s.topic.id;
+      if (!topicMap[key]) topicMap[key] = { name: s.topic.name, subjectName: s.subjectName, attempts: 0, totalScore: 0, totalQ: 0 };
+      topicMap[key].attempts++;
+      topicMap[key].totalScore += s.score;
+      topicMap[key].totalQ += s.total_questions;
+    }
+    const topicStats = Object.entries(topicMap).map(([id, v]) => ({
+      id,
+      name: v.name,
+      subjectName: v.subjectName,
+      attempts: v.attempts,
+      avgPercent: v.totalQ > 0 ? Math.round((v.totalScore / v.totalQ) * 100) : 0,
+    })).sort((a, b) => a.avgPercent - b.avgPercent);
+
+    return res.json({ students, sessions, subjectStats, topicStats });
   } catch (err: any) {
     return res.status(500).json({ error: "Внутрішня помилка сервера", details: err.message });
   }
