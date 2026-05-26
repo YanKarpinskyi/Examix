@@ -136,26 +136,83 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
 
 app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { user_id, topic_id, subject_id, mode, answers } = req.body;
+        const { topic_id, subject_id, mode, answers } = req.body;
         const userId = (req as any).userId;
 
+        const questionIds = Object.keys(answers);
+        const { data: questions, error: qError } = await supabaseAdmin
+            .from('questions')
+            .select('id, type, correct_answer, points')
+            .in('id', questionIds);
+
+        if (qError) throw qError;
+
+        let score = 0;
+        let totalPoints = 0;
+
+        for (const question of questions || []) {
+            const userAnswer = answers[question.id];
+            const correctAnswer = question.correct_answer;
+            const points = question.points ?? 1;
+            totalPoints += points;
+
+            if (userAnswer === undefined || userAnswer === null) continue;
+
+            let isCorrect = false;
+
+            if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
+                const { data: fullQ } = await supabaseAdmin
+                    .from('questions')
+                    .select('options')
+                    .eq('id', question.id)
+                    .single();
+
+                const options: string[] = fullQ?.options ?? [];
+                
+                const correctWords = (correctAnswer as string[]).map(
+                    (idx: string) => options[Number(idx)]
+                );
+
+                isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctWords);
+
+            } else if (question.type === 'multiple') {
+                const userSorted = [...(userAnswer as string[])].sort();
+                const correctSorted = [...(correctAnswer as string[])].sort();
+                isCorrect = JSON.stringify(userSorted) === JSON.stringify(correctSorted);
+
+            } else if (question.type === 'matching') {
+                isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
+
+            } else {
+                const u = String(userAnswer).trim().toLowerCase();
+                const c = Array.isArray(correctAnswer)
+                    ? correctAnswer.map((x: any) => String(x).trim().toLowerCase())
+                    : [String(correctAnswer).trim().toLowerCase()];
+                isCorrect = c.includes(u);
+            }
+
+            if (isCorrect) score += points;
+        }
+
+        // 3. Зберігаємо
         const { data, error } = await supabaseAdmin
             .from('test_attempts')
             .insert([{
                 user_id: userId,
-                topic_id: topic_id,
-                subject_id: subject_id,
+                topic_id: topic_id ?? null,
+                subject_id: subject_id ?? null,
                 mode: mode,
                 answers: answers,
-                score: 0,
-                total_questions: Object.keys(answers).length
+                score: score,
+                total_questions: questionIds.length,
             }])
             .select()
             .single();
 
         if (error) throw error;
 
-        return res.status(201).json({ attemptId: data.id });
+        return res.status(201).json({ attemptId: data.id, score, totalPoints });
+
     } catch (err: any) {
         console.error("❌ Помилка при збереженні тесту:", err);
         return res.status(500).json({ error: "Не вдалося зберегти результати тесту" });

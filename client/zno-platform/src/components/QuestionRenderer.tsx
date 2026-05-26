@@ -278,20 +278,32 @@ const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: 
                 </div>
 
                 {showResult && question.correct_answer && (
-                    <div className="correct-sequence">
-                        <strong>Правильна послідовність: </strong>
-                        {(() => {
-                            let correct = question.correct_answer;
-                            if (typeof correct === 'string') {
-                                try {
-                                    correct = JSON.parse(correct);
-                                } catch {}
-                            }
-                            return Array.isArray(correct) 
-                                ? correct.join(' → ') 
-                                : String(correct);
-                        })()}
-                    </div>
+                  <div className="correct-sequence">
+                    <strong>Правильна послідовність: </strong>
+                    {(() => {
+                      let correct = question.correct_answer;
+                      if (typeof correct === 'string') {
+                        try { correct = JSON.parse(correct); } catch {}
+                      }
+
+                      if (Array.isArray(correct)) {
+                        const isIndexBased = correct.every(
+                          (v: any) => !isNaN(Number(v)) && Number(v) < flatOptions.length
+                        );
+
+                        if (isIndexBased) {
+                          return correct
+                            .map((idx: any) => flatOptions[Number(idx)])
+                            .filter(Boolean)
+                            .join(' → ');
+                        }
+
+                        return correct.join(' → ');
+                      }
+
+                      return String(correct);
+                    })()}
+                  </div>
                 )}
             </div>
         );

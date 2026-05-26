@@ -51,38 +51,39 @@ export default function QuizResultPage() {
 
   const percentage = Math.round((attemptData.score / attemptData.total_questions) * 100);
 
-  const renderAnswer = (ans: any) => {
-
+  const renderAnswer = (ans: any, question?: any) => {
     if (ans === undefined || ans === null || ans === "") return "Немає відповіді";
-    let parsedAns = ans;
 
+    let parsedAns = ans;
     if (typeof ans === 'string') {
       const trimmed = ans.trim();
       if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        try {
-          parsedAns = JSON.parse(trimmed);
-        } catch {
-          parsedAns = ans;
-        }
+        try { parsedAns = JSON.parse(trimmed); } catch {}
       }
     }
 
-    if (Array.isArray(parsedAns) && parsedAns.length === 1 && typeof parsedAns[0] === 'string') {
-      const inner = parsedAns[0].trim();
-      if (inner.startsWith('[') || inner.startsWith('{')) {
-        try { parsedAns = JSON.parse(inner); } catch { /* залишаємо як є */ }
+    if (Array.isArray(parsedAns) && question?.type === 'sequence' || question?.type === 'sequense' || question?.type === 'order') {
+      const options: string[] = Array.isArray(question?.options)
+        ? question.options.map((o: any) => typeof o === 'string' ? o : o?.text || String(o))
+        : [];
+
+      const isIndexBased = Array.isArray(parsedAns) && parsedAns.every(
+        (v: any) => !isNaN(Number(v)) && Number(v) < options.length
+      );
+
+      if (isIndexBased && options.length > 0) {
+        return parsedAns.map((idx: any) => options[Number(idx)]).filter(Boolean).join(' → ');
       }
+
+      if (Array.isArray(parsedAns)) return parsedAns.join(' → ');
     }
 
-    if (Array.isArray(parsedAns)) {
-      return parsedAns.join(' → ');
-    }
+    if (Array.isArray(parsedAns)) return parsedAns.join(' → ');
 
     if (typeof parsedAns === 'object') {
       return Object.entries(parsedAns)
         .map(([key, val]) => {
-          const isNumericKey = !isNaN(Number(key));
-          const displayKey = isNumericKey ? Number(key) + 1 : key;
+          const displayKey = !isNaN(Number(key)) ? Number(key) + 1 : key;
           return `${displayKey} — ${val}`;
         })
         .join(', ');
@@ -114,6 +115,19 @@ export default function QuizResultPage() {
             const checkIsCorrect = () => {
               if (!userAns) return false;
 
+              if (q.type === 'sequence' || q.type === 'sequense' || q.type === 'order') {
+                const options: string[] = Array.isArray(q.options)
+                  ? q.options.map((o: any) => typeof o === 'string' ? o : o?.text || String(o))
+                  : [];
+
+                const correctWords = Array.isArray(correctAns)
+                  ? correctAns.map((idx: any) => options[Number(idx)]).filter(Boolean)
+                  : [];
+
+                const userWords = Array.isArray(userAns) ? userAns : [];
+                return JSON.stringify(userWords) === JSON.stringify(correctWords);
+              }
+
               const getRawData = (val: any) => {
                 if (typeof val === 'string') {
                   const trimmed = val.trim();
@@ -135,16 +149,14 @@ export default function QuizResultPage() {
 
               if (Array.isArray(data1) && Array.isArray(data2)) {
                 if (data1.length !== data2.length) return false;
-                return data1.every((val, index) => String(val).trim().toLowerCase() === String(data2[index]).trim().toLowerCase());
+                return data1.every((val, i) => String(val).trim().toLowerCase() === String(data2[i]).trim().toLowerCase());
               }
 
               if (typeof data1 === 'object' && typeof data2 === 'object' && data1 !== null && data2 !== null) {
                 return JSON.stringify(data1) === JSON.stringify(data2);
               }
 
-              const normalize = (val: any) => String(val).trim().toLowerCase();
-
-              return normalize(userAns) === normalize(correctAns);
+              return String(userAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase();
             };
 
             const isCorrect = checkIsCorrect();
@@ -154,11 +166,11 @@ export default function QuizResultPage() {
                 <p><strong>Питання:</strong> {q.content}</p>
                 <div className="ans-details">
                   <p className="user-ans">
-                    <strong>Ваша відповідь:</strong> {renderAnswer(userAns)}
+                    <strong>Ваша відповідь:</strong> {renderAnswer(userAns, q)}
                   </p>
                   {!isCorrect && (
                     <p className="correct-ans">
-                      <strong>Правильна відповідь:</strong> {renderAnswer(correctAns)}
+                      <strong>Правильна відповідь:</strong> {renderAnswer(correctAns, q)}
                     </p>
                   )}
                 </div>
