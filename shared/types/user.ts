@@ -17,6 +17,6 @@ export interface UserDTO {
 
 export interface AuthResponse {
   user: UserDTO | null;
-  token?: string;
+  token: string;
   error?: string;
 }

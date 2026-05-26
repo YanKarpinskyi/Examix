@@ -84,26 +84,29 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
 app.post("/api/auth/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
   
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) return res.status(400).json({ error: "Невірний email або пароль" });
-
-  const { data: profile } = await supabaseAdmin
+  // Спочатку дістаємо профіль щоб перевірити бан
+  const { data: profileData } = await supabaseAdmin
     .from("profiles")
     .select("*")
-    .eq("id", data.user.id)
+    .eq("email", email)
     .single();
 
+  if (profileData?.is_banned) {
+    return res.status(403).json({ 
+      error: "Ваш акаунт заблокований адміністратором платформи." 
+    });
+  }
+
+  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+  if (error) return res.status(400).json({ error: "Невірний email або пароль" });
+
   const token = jwt.sign(
-    { userId: profile.id, email: profile.email, role: profile.role },
+    { userId: profileData.id, email: profileData.email, role: profileData.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  return res.json({ token, user: profile });
+  return res.json({ token, user: profileData });
 });
 
 app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
@@ -477,6 +480,29 @@ app.patch("/api/admin/users/:id/role", requireAuth, requireRole(["admin"]), asyn
   res.json({ success: true });
 });
 
+app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { banned } = req.body; // true = заблокувати, false = розблокувати
+
+  // Оновлюємо профіль
+  const { error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .update({ is_banned: banned })
+    .eq("id", id);
+
+  if (profileError) return res.status(500).json({ error: profileError.message });
+
+  // Блокуємо/розблокуємо в Supabase Auth
+  const banDuration: string = banned ? "876600h" : "none";
+  const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+    ban_duration: banDuration,
+  });
+
+  if (authError) return res.status(500).json({ error: authError.message });
+
+  return res.json({ success: true, banned });
+});
+
 app.get("/api/public/groups", async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabaseAdmin.from("groups").select("id, name, faculty");
@@ -634,7 +660,7 @@ app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), asy
 });
 
 app.patch("/api/assignments/:id/due-date", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { dueDate } = req.body; 
 
   const { data, error } = await supabaseAdmin
