@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "../services/apiClient";
-import { BanConfirmModal } from "../components/BanConfirmModal";
-import { AddUserModal } from "../components/AddUserModal";
+import { BanConfirmModal } from "./BanConfirmModal";
+import { AddUserModal } from "./AddUserModal";
 import './AdminUsersTab.scss';
 
 interface UserProfile {

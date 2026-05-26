@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AdminLogsTab from '../components/AdminLogsTab';
-import AdminUsersTab from "./AdminUsersTab";
+import AdminUsersTab from "../components/AdminUsersTab";
+import AdminRolesTab from "../components/AdminRolesTab";
 import "./TeacherDashboard.scss";
 
 function AdminAnalyticsTab() {
@@ -18,17 +19,6 @@ function AdminModerationTab() {
   return (
     <div className="td-form">
       <h2>✏️ Модерація контенту</h2>
-      <div style={{ background: "var(--td-surface-2)", padding: "20px", borderRadius: "8px", textAlign: "center" }}>
-        🚧 В розробці
-      </div>
-    </div>
-  );
-}
-
-function AdminRolesTab() {
-  return (
-    <div className="td-form">
-      <h2>🔐 Налаштування ролей та прав доступу</h2>
       <div style={{ background: "var(--td-surface-2)", padding: "20px", borderRadius: "8px", textAlign: "center" }}>
         🚧 В розробці
       </div>
