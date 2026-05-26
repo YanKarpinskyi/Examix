@@ -37,14 +37,15 @@ function AdminLogsTab() {
   const actionLabel: Record<string, string> = {
     login: "🔓 Вхід",
     logout: "🔐 Вихід",
-    create_question: "➕ Створив питання",
-    delete_question: "🗑️ Видалив питання",
-    edit_question: "✏️ Редагував питання",
-    create_user: "👤 Створив користувача",
+    create_question: "➕ Створення питання",
+    delete_question: "🗑️ Видалення питання",
+    edit_question: "✏️ Редагування питання",
+    create_user: "👤 Створення користувача",
+    delete_user: "❌ Видалення користувача",
     ban_user: "🚫 Заблокував користувача",
-    create_assignment: "📋 Створив завдання",
-    delete_assignment: "🗑️ Видалив завдання",
-    submit_test: "📝 Здав тест",
+    create_assignment: "📋 Створення завдання",
+    delete_assignment: "🗑️ Видалення завдання",
+    submit_test: "📝 Здача тесту",
   };
 
   const uniqueActions = ["all", ...Object.keys(actionLabel)];
