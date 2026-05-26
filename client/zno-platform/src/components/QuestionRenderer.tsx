@@ -45,6 +45,25 @@ const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: 
     }
   }, [question.options]);
   
+  const matchingRightSide = useMemo(() => {
+    if (question.type !== 'matching' && question.type !== 'match') return [];
+    
+    const data = Array.isArray(optionsArray) ? optionsArray : [];
+    const rightSide: string[] = [];
+    
+    data.forEach((item: any) => {
+      const fullText = item.text || String(item);
+      if (fullText.includes('—')) {
+        const dashIndex = fullText.indexOf('—');
+        rightSide.push(fullText.substring(dashIndex + 1).trim());
+      } else {
+        rightSide.push('?');
+      }
+    });
+
+    return [...rightSide].sort(() => Math.random() - 0.5);
+  }, [question.id]);
+
   console.log("Current question type from DB:", question.type);
   console.log("❌ ПОВНИЙ ОБ'ЄКТ ПИТАННЯ:", question);
 
@@ -151,54 +170,57 @@ const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: 
         </div>
       );
 
-      case 'matching': case 'match': {
-        const data = Array.isArray(optionsArray) ? optionsArray : [];
-        
-        let leftSide: string[] = [];
-        let rightSide: string[] = [];
+    case 'matching': case 'match': {
+      const data = Array.isArray(optionsArray) ? optionsArray : [];
 
-        data.forEach((item: any) => {
-          const fullText = item.text || String(item);
-          
-          if (fullText.includes('—')) {
-            const [l, r] = fullText.split('—').map((s: string) => s.trim());
-            leftSide.push(l.replace(/^\d+$/, ''));
-            rightSide.push(r);
-          } else {
-            leftSide.push(fullText);
-            rightSide.push("?");
-          }
-        });
+      const leftSide: string[] = [];
+      const rightSide: string[] = [];
 
-        const currentMatches = savedAnswer || {};
+      data.forEach((item: any) => {
+        const fullText = item.text || String(item);
+        if (fullText.includes('—')) {
+          const dashIndex = fullText.indexOf('—');
+          const leftRaw = fullText.substring(0, dashIndex).trim();
+          const right = fullText.substring(dashIndex + 1).trim();
+          const leftClean = leftRaw.replace(/^[\d0-9]+\s*[—-]\s*/, '').trim();
+          leftSide.push(leftClean);
+          rightSide.push(right);
+        } else {
+          leftSide.push(fullText);
+          rightSide.push("?");
+        }
+      });
 
-        return (
-          <div className="matching-question">
-            <h3>{renderMath(question.content)}</h3>
-            <div className="matching-container">
-              <div className="left-side" style={{ width: '100%' }}>
-                {leftSide.map((text, idx) => (
-                  <div key={idx} className="matching-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '15px'}}>
-                    <span style={{ marginRight: '10px', fontWeight: 'bold' }}>{idx + 1}.</span>
-                    <span style={{ marginRight: '10px' }}>{renderMath(text)}</span>
-                    
-                    <select 
-                      value={currentMatches[idx] || ''} 
-                      onChange={(e) => onAnswer({ ...currentMatches, [idx]: e.target.value })} 
-                      disabled={showResult}
-                    >
-                      <option value="">Оберіть...</option>
-                      {rightSide.map((rText, rIdx) => (
-                        <option key={rIdx} value={rText}>{rText}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
+      const currentMatches = savedAnswer || {};
+
+      return (
+        <div className="matching-question">
+          <h3>{renderMath(question.content)}</h3>
+          <div className="matching-container">
+            <div className="left-side">
+              {leftSide.map((text, idx) => (
+                <div key={idx} className="matching-row">
+                  <span style={{ marginRight: '12px', fontWeight: 'bold', minWidth: '30px' }}>
+                    {idx + 1}.
+                  </span>
+                  <span style={{ marginRight: '15px' }}>{renderMath(text)}</span>
+                  <select
+                    value={currentMatches[idx] || ''}
+                    onChange={(e) => onAnswer({ ...currentMatches, [idx]: e.target.value })}
+                    disabled={showResult}
+                  >
+                    <option value="">Оберіть відповідь...</option>
+                    {matchingRightSide.map((rText, rIdx) => (
+                      <option key={rIdx} value={rText}>{rText}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
     case 'sequence':
     case 'sequense':
@@ -227,6 +249,18 @@ const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: 
                 console.warn("⚠️ У питання sequence/order прийшли індекси замість тексту!", optionsRaw);
                 flatOptions = optionsRaw.map(String);  
             }
+            else if (Array.isArray(optionsRaw) && optionsRaw[0] && typeof optionsRaw[0] === 'object') {
+              flatOptions = optionsRaw.map(opt => {
+                  const raw = opt?.text || opt?.content || String(opt);
+                  if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+                      try {
+                          const parsed = JSON.parse(raw);
+                          if (Array.isArray(parsed)) return parsed;
+                      } catch {}
+                  }
+                  return raw;
+              }).flat();
+          }
         }
 
         if (flatOptions.length === 0) {

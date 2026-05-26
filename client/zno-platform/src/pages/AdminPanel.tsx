@@ -79,11 +79,12 @@ export default function AdminPanel() {
     const [activeTab, setActiveTab] = useState<AdminTab>("users");
 
     const menuItems = [
-        { id: "users" as const, icon: "👥", title: "Користувачі", desc: "CRUD, блокування, додавання" },
-        { id: "logs" as const, icon: "📋", title: "Логи дій", desc: "Перегляд активності користувачів" },
-        { id: "analytics" as const, icon: "📊", title: "Аналітика", desc: "Загальна статистика платформи" },
-        { id: "moderation" as const, icon: "✏️", title: "Модерація", desc: "Управління контентом" },
-        { id: "roles" as const, icon: "🔐", title: "Ролі та права", desc: "Налаштування доступу" },
+        // { id: "users" as const, icon: "👥", title: "Користувачі", desc: "CRUD, блокування, додавання" },
+        { id: "users" as const, icon: "👥", title: "Користувачі", desc: "" },
+        { id: "logs" as const, icon: "📋", title: "Активність користувачів", desc: "" },
+        { id: "analytics" as const, icon: "📊", title: "Аналітика", desc: "" },
+        { id: "moderation" as const, icon: "✏️", title: "Модерація", desc: "" },
+        { id: "roles" as const, icon: "🔐", title: "Ролі та права", desc: "" },
     ];
 
     return (
@@ -91,9 +92,9 @@ export default function AdminPanel() {
             <div className="td-inner">
                 <div className="td-header">
                     <h1>🛡️ Адмін панель</h1>
-                    <p style={{ color: "var(--td-text-muted)" }}>
+                    {/* <p style={{ color: "var(--td-text-muted)" }}>
                         Керування платформою: користувачі, логування, аналітика, модерація, ролі
-                    </p>
+                    </p> */}
                 </div>
 
                 <div style={{ 
@@ -120,7 +121,9 @@ export default function AdminPanel() {
                                 transition: "all 0.2s ease",
                                 minHeight: "160px",
                                 width: "260px",     
-                                flexShrink: 0
+                                flexShrink: 0,
+                                justifyContent: "center",
+                                flexGrow: 1
                             }}
                         >
                             <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>
@@ -138,7 +141,7 @@ export default function AdminPanel() {
                                 margin: 0,
                                 flexGrow: 1
                             }}>
-                                {item.desc}
+                                {/* {item.desc} */}
                             </p>
                         </div>
                     ))}

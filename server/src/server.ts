@@ -136,7 +136,7 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
 
 app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { topic_id, subject_id, mode, answers } = req.body;
+        const { topic_id, subject_id, mode, answers, group_assignment_id } = req.body;
         const userId = (req as any).userId;
 
         const questionIds = Object.keys(answers);
@@ -194,7 +194,6 @@ app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Resp
             if (isCorrect) score += points;
         }
 
-        // 3. Зберігаємо
         const { data, error } = await supabaseAdmin
             .from('test_attempts')
             .insert([{
@@ -205,6 +204,7 @@ app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Resp
                 answers: answers,
                 score: score,
                 total_questions: questionIds.length,
+                group_assignment_id: group_assignment_id ?? null,
             }])
             .select()
             .single();
@@ -263,7 +263,19 @@ app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Respons
       if (assignError) {
         console.error("❌ Assignments fetch error:", assignError);
       } else {
-        assignments = assignData || [];
+        const assignmentIds = (assignData || []).map((a: any) => a.id);
+
+        const { data: completedAttempts } = await supabaseAdmin
+            .from("test_attempts")
+            .select("group_assignment_id")
+            .eq("user_id", userId)
+            .in("group_assignment_id", assignmentIds);
+
+        const completedIds = new Set(
+            (completedAttempts || []).map((a: any) => a.group_assignment_id)
+        );
+
+        assignments = (assignData || []).filter((a: any) => !completedIds.has(a.id));
       }
     }
 
@@ -703,7 +715,7 @@ app.get("/api/groups/:groupId/analytics", requireAuth, requireRole(["teacher", "
 
     const { data: attempts, error: attError } = await supabaseAdmin
       .from("test_attempts")
-      .select("id, score, started_at, mode, user_id, total_questions")
+      .select("id, score, created_at, mode, user_id, total_questions")
       .in("user_id", studentIds);
 
     if (attError) return res.status(400).json({ error: attError.message });

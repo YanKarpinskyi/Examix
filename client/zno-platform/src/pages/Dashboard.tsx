@@ -128,9 +128,9 @@ function Dashboard() {
                         style={{ marginTop: "12px", width: "100%" }} 
                         onClick={() => {
                           if (a.topic?.id) {
-                            navigate(`/topic/${a.topic.id}/quiz`);
+                            navigate(`/topic/${a.topic.id}/quiz?assignmentId=${a.id}`);
                           } else if (a.subject?.id) {
-                            navigate(`/quiz/nmt/${a.subject.id}`);
+                            navigate(`/quiz/nmt/${a.subject.id}?assignmentId=${a.id}`);
                           }
                         }}
                       >

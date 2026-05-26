@@ -78,6 +78,7 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
   matching: "Відповідність",
   order: "Порядок",
   sequense: "Послідовність",
+  sequence: "Послідовність",
   short: "Коротка відповідь",
 };
 
@@ -572,9 +573,9 @@ export default function TeacherDashboard() {
         <div className="td-inner">
           <div className="td-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "15px" }}>
             <h1>👨‍🏫 Панель викладача Examix</h1>
-            <p style={{ color: "var(--td-text-muted)", margin: 0 }}>
+            {/* <p style={{ color: "var(--td-text-muted)", margin: 0 }}>
               Керування питаннями, групами, призначеннями та статистикою
-            </p>
+            </p> */}
 
             <div style={{
               display: "flex",
@@ -588,7 +589,7 @@ export default function TeacherDashboard() {
                 { id: "questions" as const, icon: "📚", title: "Керування питаннями"},
                 { id: "groups" as const, icon: "👥", title: "Навчальні групи"},
                 { id: "assignments" as const, icon: "📅", title: "Призначення тестів"},
-                { id: "analytics" as const, icon: "📊", title: "Статистика учнів"},
+                { id: "analytics" as const, icon: "📊", title: "Статистика студентів"},
                 // { id: "review" as const, icon: "📝", title: "Відкриті відповіді"},
               ] as const).map((item) => (
                 <div
@@ -608,6 +609,8 @@ export default function TeacherDashboard() {
                     minHeight: "150px",
                     width: "200px",
                     flexShrink: 0,
+                    flexGrow: 1,
+                    justifyContent: "center"
                   }}
                 >
                   <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>
@@ -621,7 +624,7 @@ export default function TeacherDashboard() {
                     fontSize: "0.82rem",
                     lineHeight: "1.4",
                     margin: 0,
-                    flexGrow: 1,
+                    // flexGrow: 1,
                   }}>
                   </p>
                 </div>
@@ -735,9 +738,9 @@ export default function TeacherDashboard() {
                 )}
 
                 <div className="td-form" style={{ gap: "14px", marginBottom: "20px" }}>
-                  <span className="td-options-label" style={{ margin: 0 }}>
+                  {/* <span className="td-options-label" style={{ margin: 0 }}>
                     Каскадний пошук та фільтрація тестів
-                  </span>
+                  </span> */}
                   <div className="td-grid">
                     <div className="td-field">
                       <label>1. Виберіть предмет</label>
@@ -1430,7 +1433,7 @@ export default function TeacherDashboard() {
                                 </span>
                               </td>
                               <td style={{ padding: "12px", fontSize: "0.9rem" }}>
-                                {new Date(s.started_at).toLocaleDateString()}
+                                {new Date(s.created_at).toLocaleDateString()}
                               </td>
                             </tr>
                           ))}
@@ -1454,7 +1457,7 @@ export default function TeacherDashboard() {
 
             {activeTab === "review" && (
               <div className="td-form">
-                <h2>Ручна перевірка розгорнутих відповідей учнів</h2>
+                <h2>Ручна перевірка розгорнутих відповідей студентів</h2>
                 <p style={{ color: "var(--td-text-muted)", marginBottom: "20px" }}>
                   Тут відображаються текстові есе та короткі відкриті питання, які потребують підтвердження викладача.
                 </p>
@@ -1476,7 +1479,7 @@ export default function TeacherDashboard() {
                         }}
                       >
                         <div style={{ fontSize: "0.9rem", color: "var(--td-accent)", marginBottom: "8px" }}>
-                          <strong>Учень:</strong> {item.session?.profiles?.username || "Студент"}
+                          <strong>Студент:</strong> {item.session?.profiles?.username || "Студент"}
                         </div>
                         <div style={{ marginBottom: "10px" }}>
                           <span

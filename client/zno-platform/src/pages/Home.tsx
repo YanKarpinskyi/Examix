@@ -23,7 +23,7 @@ function Home() {
             <div className="facts">
                 <div>
                     <p className="factsNumber">12 400+</p>
-                    <p className="factsDescr">учнів</p>
+                    <p className="factsDescr">студентів</p>
                 </div>
                 <div>
                     <p className="factsNumber">3 500+</p>

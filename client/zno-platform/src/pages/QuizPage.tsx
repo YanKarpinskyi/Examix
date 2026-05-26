@@ -15,6 +15,8 @@ interface QuizPageProps {
 export default function QuizPage({ mode = 'default' }: QuizPageProps) {
   const { topicId, subjectId } = useParams();
   const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get("assignmentId");
+
   const navigate = useNavigate();
 
   const isErrorMode = searchParams.get('mode') === 'errors';
@@ -160,7 +162,6 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
   const processFinish = async () => {
     console.log("🚀 processFinish START");
 
-    // 1. Перевірка користувача з localStorage
     const userString = localStorage.getItem("user");
     if (!userString) {
         console.error("❌ Користувач не авторизований (немає даних в localStorage)!");
@@ -171,16 +172,15 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
     const user = JSON.parse(userString);
 
     try {
-        // 2. Підготовка даних для бекенду
         const payload = {
             user_id: user.id,
             topic_id: mode === 'nmt' ? null : topicId,
             subject_id: subjectId,
             mode: mode,
             answers: answers,
+            group_assignment_id: assignmentId ?? null, 
         };
 
-        // 3. Відправка на бекенд
         const result = await apiClient.request<{ attemptId: string }>(
             '/student/submit-test', 
             {
@@ -191,14 +191,12 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
 
         console.log("✅ Результат успішно збережено:", result);
 
-        // 4. Закриття модалки та перехід на результат
         setIsModalOpen(false);
         
         if (result?.attemptId) {
             navigate(`/quiz-result/${result.attemptId}`);
         } else {
             console.warn("⚠️ attemptId не повернувся з сервера");
-            // Можна додати запасний варіант, наприклад navigate('/profile') тощо
         }
 
     } catch (err: any) {
@@ -279,8 +277,8 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
         }}
         onCancel={() => {
             console.log("Клік: Завершити зараз -> запускаю processFinish");
-            setIsModalOpen(false); // Спочатку закриваємо
-            processFinish();       // Потім виконуємо логіку
+            setIsModalOpen(false); 
+            processFinish();       
         }}
       />
     </div>
