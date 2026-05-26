@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { apiClient } from "../services/apiClient"; 
+import authService from "../services/authService";
 import type { UserDTO } from "@zno/shared";
 
 interface AuthContextType {
   user: UserDTO | null;
   loading: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
@@ -47,13 +48,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkAuth();
   }, [checkAuth]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     setLoading(true);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    setLoading(false);
-    window.location.href = "/login";
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error("Помилка при виході:", err);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setUser(null);
+      setLoading(false);
+      window.location.href = "/login";
+    }
   }, []);
 
   const contextValue = useMemo(() => ({ 

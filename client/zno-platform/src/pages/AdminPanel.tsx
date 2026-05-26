@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "../services/apiClient";
 import { BanConfirmModal } from "../components/BanConfirmModal";
+import AdminLogsTab from '../components/AdminLogsTab';
 import "./TeacherDashboard.scss";
 
 interface UserProfile {
@@ -211,17 +212,6 @@ function AdminUsersTab() {
           onCancel={() => setBanModal({ open: false, user: null, action: "ban" })}
         />
       )}
-    </div>
-  );
-}
-
-function AdminLogsTab() {
-  return (
-    <div className="td-form">
-      <h2>📋 Логування дій користувачів</h2>
-      <div style={{ background: "var(--td-surface-2)", padding: "20px", borderRadius: "8px", textAlign: "center" }}>
-        🚧 В розробці
-      </div>
     </div>
   );
 }

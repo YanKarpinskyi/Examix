@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-// import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { supabaseAdmin } from "./config/db";
 import type { RegisterDTO, LoginRequest, Role } from "@zno/shared";
@@ -30,6 +29,32 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
   } catch (err) {
     return res.status(401).json({ error: "Невалідний або прострочений токен" });
   }
+}
+
+async function logAction(userId: string, action: string, details?: any) {
+  try {
+    await supabaseAdmin.from("user_logs").insert([{
+      user_id: userId,
+      action,
+      details: details ?? null,
+    }]);
+  } catch (err) {
+    console.error("❌ Log error:", err);
+  }
+}
+
+function withLogging(action: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const originalJson = res.json.bind(res);
+    res.json = (body: any) => {
+      if (res.statusCode < 400) {
+        const userId = (req as any).userId;
+        if (userId) logAction(userId, action, req.body);
+      }
+      return originalJson(body);
+    };
+    next();
+  };
 }
 
 function requireRole(roles: Role[]) {
@@ -84,7 +109,6 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
 app.post("/api/auth/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
   
-  // Спочатку дістаємо профіль щоб перевірити бан
   const { data: profileData } = await supabaseAdmin
     .from("profiles")
     .select("*")
@@ -106,7 +130,17 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
     { expiresIn: "7d" }
   );
 
+  await logAction(profileData.id, "login");
+
   return res.json({ token, user: profileData });
+});
+
+app.post("/api/auth/logout", requireAuth, async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  
+  await logAction(userId, "logout");
+
+  return res.json({ success: true, message: "Вихід успішно зафіксовано" });
 });
 
 app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
@@ -137,7 +171,7 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/student/submit-test", requireAuth, async (req: Request, res: Response) => {
+app.post("/api/student/submit-test", requireAuth, withLogging("submit_test"), async (req: Request, res: Response) => {
     try {
         const { topic_id, subject_id, mode, answers, group_assignment_id } = req.body;
         const userId = (req as any).userId;
@@ -326,7 +360,7 @@ app.get("/api/teacher/topics", requireAuth, requireRole(["teacher", "admin"]), a
   }
 });
 
-app.post("/api/teacher/questions", requireAuth, requireRole(["teacher", "admin"]), async (req, res) => {
+app.post("/api/teacher/questions", requireAuth, requireRole(["teacher", "admin"]), withLogging("create_question"), async (req, res) => {
   try {
     const { text, type, topicId, options, points } = req.body;
     const validOptions = Array.isArray(options) ? options : [];
@@ -377,7 +411,7 @@ app.get("/api/student/subjects/:subjectId/topics", requireAuth, async (req: Requ
   }
 });
 
-app.delete("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), async (req, res) => {
+app.delete("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), withLogging("delete_question"), async (req, res) => {
   try {
     const { id } = req.params;
     const { error } = await supabaseAdmin.from("questions").delete().eq("id", id);
@@ -388,7 +422,7 @@ app.delete("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "a
   }
 });
 
-app.patch("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+app.patch("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), withLogging("edit_question"), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { content, options } = req.body;
@@ -472,6 +506,26 @@ app.get("/api/admin/users", requireAuth, requireRole(["admin"]), async (_req: Re
   res.json({ users: data });
 });
 
+app.get("/api/admin/logs", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
+  const { userId, limit = "50", offset = "0" } = req.query;
+
+  const query = supabaseAdmin
+    .from("user_logs")
+    .select(`
+      id, action, details, created_at,
+      profiles!user_logs_user_id_fkey (id, username, email, role)
+    `)
+    .order("created_at", { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+
+  if (userId) query.eq("user_id", userId);
+
+  const { data, error } = await query;
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ logs: data });
+});
+
 app.patch("/api/admin/users/:id/role", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -480,11 +534,10 @@ app.patch("/api/admin/users/:id/role", requireAuth, requireRole(["admin"]), asyn
   res.json({ success: true });
 });
 
-app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
+app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), withLogging("ban_user"), async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { banned } = req.body; // true = заблокувати, false = розблокувати
+  const { banned } = req.body; 
 
-  // Оновлюємо профіль
   const { error: profileError } = await supabaseAdmin
     .from("profiles")
     .update({ is_banned: banned })
@@ -492,7 +545,6 @@ app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), async
 
   if (profileError) return res.status(500).json({ error: profileError.message });
 
-  // Блокуємо/розблокуємо в Supabase Auth
   const banDuration: string = banned ? "876600h" : "none";
   const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
     ban_duration: banDuration,
@@ -587,7 +639,7 @@ app.get("/api/assignments", requireAuth, async (req, res) => {
   res.json({ assignments: data });
 });
 
-app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), withLogging("create_assignment"), async (req: Request, res: Response) => {
   const requestStart = Date.now();
   console.log("======================================");
   console.log("📥 [CREATE ASSIGNMENT] REQUEST START");
@@ -674,7 +726,7 @@ app.patch("/api/assignments/:id/due-date", requireAuth, requireRole(["teacher", 
   return res.json({ assignment: data });
 });
 
-app.delete("/api/assignments/:id", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
+app.delete("/api/assignments/:id", requireAuth, requireRole(["teacher", "admin"]), withLogging("delete_assignment"), async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const { error } = await supabaseAdmin

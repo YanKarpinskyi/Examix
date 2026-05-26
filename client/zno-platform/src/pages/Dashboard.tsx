@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-// import { supabase } from '../services/supabaseClient';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { apiClient } from '../services/apiClient';
 import './Dashboard.scss';

@@ -16,6 +16,10 @@ const authService = {
         });
     },
 
+    async logout(): Promise<void> {
+        await apiClient.request("/auth/logout", { method: "POST" });
+    },
+
     async getGroups(): Promise<{ id: string; name: string; faculty: string | null }[]> {
         const result = await apiClient.request<{ groups: any[] }>("/public/groups", {
             method: "GET"
