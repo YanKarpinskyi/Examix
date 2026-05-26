@@ -143,7 +143,6 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
   const handleFinish = () => {
       console.log("🔥 Кнопка натиснута!");
       
-      // Перевіримо, чи взагалі працює умова
       const unanswered = questions.filter(q => !answers[q.id]);
       console.log("Кількість питань:", questions.length);
       console.log("Кількість відповідей:", Object.keys(answers).length);
@@ -157,68 +156,6 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
           processFinish();
       }
   };
-
-  // const processFinish = async () => {
-  //   console.log("🚀 processFinish START");
-  //   try {
-  //     const { data: { user } } = await supabase.auth.getUser();
-  //     console.log("👤 User:", user?.id);
-  //     if (!user) {
-  //         console.error("❌ Помилка: Користувач не авторизований або сесія закінчилася!");
-  //         alert("Ваша сесія завершилася. Будь ласка, увійдіть знову.");
-  //         return;
-  //     }
-
-  //     const isCorrect = (question: any) => {
-  //       const uAns = answers[question.id];
-  //       const cAns = question.correct_answer;
-  //       if (uAns === undefined || uAns === null) return false;
-  //       return JSON.stringify(uAns) === JSON.stringify(cAns);
-  //     };
-
-  //     const correctQuestions = questions.filter(isCorrect);
-  //     const wrongQuestions = questions.filter(q => !isCorrect(q));
-
-  //     const { data: attempt, error: attemptError } = await supabase
-  //       .from('test_attempts')
-  //       .insert({
-  //         user_id: user.id,
-  //         topic_id: mode === 'nmt' ? null : topicId,
-  //         subject_id: subjectId,
-  //         mode: mode,
-  //         score: correctQuestions.length,
-  //         total_questions: questions.length,
-  //         answers: answers,
-  //       })
-  //       .select()
-  //       .single();
-
-  //     if (attemptError) {
-  //       console.error("Error saving attempt:", attemptError);
-  //     }
-
-  //     if (isErrorMode && correctQuestions.length > 0) {
-  //       await supabase
-  //         .from('user_errors')
-  //         .delete()
-  //         .in('question_id', correctQuestions.map(q => q.id));
-  //     }
-
-  //     if (!isErrorMode && mode !== 'nmt' && wrongQuestions.length > 0) {
-  //       const errorsToSave = wrongQuestions.map(q => ({
-  //         user_id: user.id,
-  //         question_id: q.id,
-  //         topic_id: topicId,
-  //       }));
-  //       await supabase.from('user_errors').upsert(errorsToSave);
-  //     }
-
-  //     setIsModalOpen(false);
-  //     if (attempt) navigate(`/quiz-result/${attempt.id}`);
-  //   } catch (err) {
-  //     console.error("❌ processFinish CRASH:", err);
-  //   }
-  // };
 
   const processFinish = async () => {
     console.log("🚀 processFinish START");

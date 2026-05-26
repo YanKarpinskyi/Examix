@@ -23,6 +23,13 @@ if (!supabaseUrl || !serviceRoleKey) {
   process.exit(1);
 }
 
+try {
+  const response = await fetch("https://google.com");
+  console.log("🔍 [TEST] Зовнішнє з'єднання успішне:", response.ok);
+} catch (e) {
+  console.error("🔍 [TEST] Помилка мережі:", e);
+}
+
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
     autoRefreshToken: false,

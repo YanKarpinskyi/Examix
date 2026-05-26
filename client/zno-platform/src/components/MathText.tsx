@@ -1,4 +1,3 @@
-// src/components/MathText.tsx
 import katex from "katex";
 
 interface Props {

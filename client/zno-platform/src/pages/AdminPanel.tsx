@@ -119,7 +119,7 @@ export default function AdminPanel() {
                                 textAlign: "center",
                                 transition: "all 0.2s ease",
                                 minHeight: "160px",
-                                width: "260px",      // фіксована ширина замість grid
+                                width: "260px",     
                                 flexShrink: 0
                             }}
                         >

@@ -5,11 +5,18 @@ interface ConfirmModalProps {
     isOpen: boolean;
     title: string;
     message: string;
+    confirmText?: string;
+    cancelText?: string; 
     onConfirm: () => void;
     onCancel: () => void;
 }
 
-export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }: ConfirmModalProps) {
+export default function ConfirmModal({ 
+    isOpen, title, message, 
+    confirmText = "Повернутися", 
+    cancelText = "Завершити зараз", 
+    onConfirm, onCancel 
+}: ConfirmModalProps) {
     if (!isOpen) return null;
 
     return createPortal(
@@ -19,10 +26,10 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
                 <p>{message}</p>
                 <div className="modal-actions">
                     <button className="btn-secondary" onClick={onCancel}>
-                        Завершити зараз
+                        {cancelText}
                     </button>
                     <button className="btn-primary" onClick={onConfirm}>
-                        Повернутися
+                        {confirmText}
                     </button>
                 </div>
             </div>

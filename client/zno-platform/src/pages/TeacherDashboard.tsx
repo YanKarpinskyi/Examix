@@ -4,6 +4,7 @@ import StudentsModal from "../components/StudentsModal";
 import AlertModal from '../components/AlertModal';
 import { apiClient } from "../services/apiClient";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ConfirmModal from '../components/ConfirmModal';
 import "./TeacherDashboard.scss";
 
 interface OptionField {
@@ -106,6 +107,12 @@ export default function TeacherDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    assignmentId: string;
+    groupName: string;
+  }>({ isOpen: false, assignmentId: '', groupName: '' });
 
   const [form, setForm] = useState<NewQuestion>({
     text: "",
@@ -472,11 +479,15 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handleDeleteAssignment = async (assignmentId: string, groupName: string) => {
-    if (!confirm(`Скасувати призначення для групи "${groupName}"? Цю дію не можна відмінити.`)) return;
+  const handleDeleteAssignment = (assignmentId: string, groupName: string) => {
+    setConfirmState({ isOpen: true, assignmentId, groupName });
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmState(prev => ({ ...prev, isOpen: false }));
     try {
-      await apiClient.request(`/assignments/${assignmentId}`, { method: "DELETE" });
-      setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+      await apiClient.request(`/assignments/${confirmState.assignmentId}`, { method: "DELETE" });
+      setAssignments(prev => prev.filter(a => a.id !== confirmState.assignmentId));
     } catch (err: any) {
       alert(`Помилка: ${err.message}`);
     }
@@ -1487,6 +1498,15 @@ export default function TeacherDashboard() {
           isOpen={!!alertMessage}
           message={alertMessage || ""}
           onClose={() => setAlertMessage(null)}
+        />
+        <ConfirmModal
+          isOpen={confirmState.isOpen}
+          title="Скасування призначення"
+          message={`Скасувати призначення для групи "${confirmState.groupName}"? Цю дію не можна відмінити.`}
+          confirmText="Скасувати призначення"
+          cancelText="Повернутися"
+          onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={handleConfirmDelete}
         />
       </div>
     </>

@@ -39,11 +39,9 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     
     if (loading) return <LoadingSpinner />;
     if (user) {
-        // Якщо зайшов вчитель або адмін — одразу кидаємо в панель вчителя
         if (user.role === 'teacher' || user.role === 'admin') {
             return <Navigate to="/teacher" replace />;
         }
-        // Інакше — на учнівський дашборд
         return <Navigate to="/dashboard" replace />;
     }
     
