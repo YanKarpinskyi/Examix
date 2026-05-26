@@ -5,7 +5,7 @@ import "./TeacherDashboard.scss";
 
 function AdminAnalyticsTab() {
   return (
-    <div className="td-form">
+    <div className="td-form" style={{width: '100vw', margin: '0 auto'}}>
       <h2>📊 Загальна аналітика платформи</h2>
       <div style={{ background: "var(--td-surface-2)", padding: "20px", borderRadius: "8px", textAlign: "center" }}>
         🚧 В розробці

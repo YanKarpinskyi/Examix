@@ -4,6 +4,14 @@ import jwt from "jsonwebtoken";
 import { supabaseAdmin } from "./config/db";
 import type { RegisterDTO, LoginRequest, Role } from "@zno/shared";
 
+const getParam = (req: Request, paramName: string): string => {
+  const value = req.params[paramName];
+  if (Array.isArray(value)) {
+    return value[0] ?? '';
+  }
+  return value ?? '';
+};
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -413,7 +421,7 @@ app.get("/api/student/subjects/:subjectId/topics", requireAuth, async (req: Requ
 
 app.delete("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), withLogging("delete_question"), async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
     const { error } = await supabaseAdmin.from("questions").delete().eq("id", id);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
@@ -424,7 +432,7 @@ app.delete("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "a
 
 app.patch("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "admin"]), withLogging("edit_question"), async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = getParam(req, 'id');
     const { content, options } = req.body;
     const validOptions = Array.isArray(options) ? options : [];
     const correctAnswer = validOptions.filter((o: any) => o.isCorrect).map((o: any) => o.text);
@@ -568,7 +576,7 @@ app.get("/api/admin/logs", requireAuth, requireRole(["admin"]), async (req: Requ
 });
 
 app.patch("/api/admin/users/:id/role", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = getParam(req, 'id');
   const { role } = req.body;
   const { error } = await supabaseAdmin.from("profiles").update({ role }).eq("id", id);
   if (error) return res.status(500).json({ error: error.message });
@@ -576,7 +584,7 @@ app.patch("/api/admin/users/:id/role", requireAuth, requireRole(["admin"]), asyn
 });
 
 app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), withLogging("ban_user"), async (req: Request, res: Response) => {
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = getParam(req, 'id');
   const { banned } = req.body; 
 
   const { error: profileError } = await supabaseAdmin
@@ -594,6 +602,22 @@ app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), withL
   if (authError) return res.status(500).json({ error: authError.message });
 
   return res.json({ success: true, banned });
+});
+
+app.delete("/api/admin/users/:id", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
+  const id = getParam(req, 'id');
+  const adminId = (req as any).userId;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID користувача обов'язковий" });
+  }
+
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+  if (authError) return res.status(500).json({ error: authError.message });
+
+  await logAction(adminId, "delete_user", { deletedUserId: id });
+
+  return res.json({ success: true });
 });
 
 app.get("/api/public/groups", async (req: Request, res: Response) => {
@@ -753,7 +777,7 @@ app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), wit
 });
 
 app.patch("/api/assignments/:id/due-date", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
-  const id = req.params.id as string;
+  const id = getParam(req, 'id');
   const { dueDate } = req.body; 
 
   const { data, error } = await supabaseAdmin
@@ -768,7 +792,7 @@ app.patch("/api/assignments/:id/due-date", requireAuth, requireRole(["teacher", 
 });
 
 app.delete("/api/assignments/:id", requireAuth, requireRole(["teacher", "admin"]), withLogging("delete_assignment"), async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = getParam(req, 'id');
 
   const { error } = await supabaseAdmin
     .from("group_assignments")
@@ -946,7 +970,7 @@ app.get("/api/review/pending", requireAuth, requireRole(["teacher", "admin"]), a
 });
 
 app.patch("/api/review/:answerId", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
-  const { answerId } = req.params;
+  const answerId = getParam(req, 'answerId');
   const { isCorrect, points } = req.body;
   const teacherId = (req as any).userId;
 

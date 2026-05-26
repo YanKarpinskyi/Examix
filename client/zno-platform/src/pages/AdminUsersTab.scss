@@ -1,0 +1,30 @@
+.au-cards {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .au-table-wrap {
+    display: none !important;
+  }
+
+  .au-cards {
+    display: flex !important;
+  }
+
+  .au-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    input[type="text"] {
+      width: 100% !important;
+      min-width: unset !important;
+    }
+
+    > .td-btn-new:last-child {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
