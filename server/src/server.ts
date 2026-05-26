@@ -776,6 +776,63 @@ app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), wit
   }
 });
 
+app.post("/api/admin/subjects", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { name, description } = req.body;
+  const { data, error } = await supabaseAdmin.from("subjects").insert([{ name, description }]).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ subject: data });
+});
+
+app.patch("/api/admin/subjects/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { name, description } = req.body;
+  const { data, error } = await supabaseAdmin.from("subjects").update({ name, description }).eq("id", req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ subject: data });
+});
+
+app.delete("/api/admin/subjects/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { error } = await supabaseAdmin.from("subjects").delete().eq("id", req.params.id);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
+});
+
+app.post("/api/admin/topics", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { name, description, subject_id } = req.body;
+  const { data, error } = await supabaseAdmin.from("topics").insert([{ name, description, subject_id }]).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ topic: data });
+});
+
+app.patch("/api/admin/topics/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { name, description, subject_id } = req.body;
+  const { data, error } = await supabaseAdmin.from("topics").update({ name, description, subject_id }).eq("id", req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ topic: data });
+});
+
+app.delete("/api/admin/topics/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { error } = await supabaseAdmin.from("topics").delete().eq("id", req.params.id);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
+});
+
+app.delete("/api/admin/questions/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { error } = await supabaseAdmin.from("questions").delete().eq("id", req.params.id);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
+});
+
+app.patch("/api/admin/questions/:id", requireAuth, requireRole(["admin"]), async (req, res) => {
+  const { content, options, points, topic_id } = req.body;
+  const validOptions = Array.isArray(options) ? options : [];
+  const correct_answer = validOptions.filter((o: any) => o.isCorrect).map((o: any) => o.text);
+  const { data, error } = await supabaseAdmin
+    .from("questions").update({ content, options: validOptions, correct_answer, points, topic_id })
+    .eq("id", req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ question: data });
+});
+
 app.patch("/api/assignments/:id/due-date", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
   const id = getParam(req, 'id');
   const { dueDate } = req.body; 

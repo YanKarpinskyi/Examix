@@ -3,18 +3,8 @@ import AdminLogsTab from '../components/AdminLogsTab';
 import AdminUsersTab from "../components/AdminUsersTab";
 import AdminRolesTab from "../components/AdminRolesTab";
 import AdminAnalyticsTab from "../components/AdminAnalyticsTab";
+import AdminModerationTab from "../components/AdminModerationTab";
 import "./TeacherDashboard.scss";
-
-function AdminModerationTab() {
-  return (
-    <div className="td-form">
-      <h2>✏️ Модерація контенту</h2>
-      <div style={{ background: "var(--td-surface-2)", padding: "20px", borderRadius: "8px", textAlign: "center" }}>
-        🚧 В розробці
-      </div>
-    </div>
-  );
-}
 
 type AdminTab = "users" | "logs" | "analytics" | "moderation" | "roles";
 
