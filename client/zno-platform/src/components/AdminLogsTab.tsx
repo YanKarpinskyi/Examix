@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiClient } from "../services/apiClient";
 
 function AdminLogsTab() {
@@ -7,12 +7,22 @@ function AdminLogsTab() {
   const [userFilter, setUserFilter] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
 
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => { loadLogs(); }, []);
 
-  const loadLogs = async () => {
+  const handleUserFilterChange = (value: string) => {
+    setUserFilter(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      loadLogs(value);
+    }, 350);
+  };
+
+  const loadLogs = async (search = userFilter) => {
     setLoading(true);
     try {
-      const params = userFilter ? `?userId=${userFilter}` : "";
+      const params = search ? `?search=${encodeURIComponent(search)}` : "";
       const data = await apiClient.request<{ logs: any[] }>(`/admin/logs${params}`);
       setLogs(data.logs || []);
     } catch (err) {
@@ -21,6 +31,8 @@ function AdminLogsTab() {
       setLoading(false);
     }
   };
+
+  useEffect(() => { loadLogs(); }, []);
 
   const actionLabel: Record<string, string> = {
     login: "🔓 Вхід",
@@ -47,9 +59,9 @@ function AdminLogsTab() {
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", margin: "16px 0" }}>
         <input
           type="text"
-          placeholder="🔍 User ID для фільтрації..."
+          placeholder="🔍 Ім'я або email..."
           value={userFilter}
-          onChange={e => setUserFilter(e.target.value)}
+          onChange={e => handleUserFilterChange(e.target.value)}
           onKeyDown={e => e.key === "Enter" && loadLogs()}
           style={{
             flex: 1, minWidth: "200px", padding: "8px 12px",
@@ -57,7 +69,6 @@ function AdminLogsTab() {
             border: "1px solid var(--td-surface-2)", borderRadius: "6px",
           }}
         />
-        <button className="td-btn-new" onClick={loadLogs}>Фільтрувати</button>
         <select
           value={actionFilter}
           onChange={e => setActionFilter(e.target.value)}

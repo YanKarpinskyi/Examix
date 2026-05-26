@@ -507,9 +507,9 @@ app.get("/api/admin/users", requireAuth, requireRole(["admin"]), async (_req: Re
 });
 
 app.get("/api/admin/logs", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
-  const { userId, limit = "50", offset = "0" } = req.query;
+  const { search, limit = "50", offset = "0" } = req.query;
 
-  const query = supabaseAdmin
+  let query = supabaseAdmin
     .from("user_logs")
     .select(`
       id, action, details, created_at,
@@ -518,10 +518,18 @@ app.get("/api/admin/logs", requireAuth, requireRole(["admin"]), async (req: Requ
     .order("created_at", { ascending: false })
     .range(Number(offset), Number(offset) + Number(limit) - 1);
 
-  if (userId) query.eq("user_id", userId);
+  if (search) {
+    const { data: matchedProfiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .or(`username.ilike.%${search}%,email.ilike.%${search}%`);
+
+    const ids = (matchedProfiles || []).map(p => p.id);
+    if (ids.length === 0) return res.json({ logs: [] });
+    query = query.in("user_id", ids);
+  }
 
   const { data, error } = await query;
-
   if (error) return res.status(500).json({ error: error.message });
   res.json({ logs: data });
 });
