@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth"; 
 import authService from "../services/authService";
 import googleIcon from "../assets/auth/google-logo.png";
@@ -8,7 +8,6 @@ import "./Auth.scss";
 
 function Login() {
   const { checkAuth } = useAuth();  
-  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
@@ -41,13 +40,8 @@ function Login() {
         await checkAuth();
 
         alert("Вхід успішний!");
-        
-        const userRole = response.user?.role;
-        if (userRole === "teacher" || userRole === "admin") {
-          navigate("/teacher/questions");
-        } else {
-          navigate("/dashboard");
-        }
+      } else {
+        throw new Error("Не вдалося отримати дані сесії");
       }
     } catch (err: any) {
       setError(err.message || "Невірний email або пароль");

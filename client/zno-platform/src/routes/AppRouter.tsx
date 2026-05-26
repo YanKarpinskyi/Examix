@@ -39,13 +39,22 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     
     if (loading) return <LoadingSpinner />;
     if (user) {
-        if (user.role === 'teacher' || user.role === 'admin') {
-            return <Navigate to="/teacher" replace />;
-        }
+        if (user.role === 'admin') return <Navigate to="/admin" replace />;
+        if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
         return <Navigate to="/dashboard" replace />;
     }
     
     return <>{children}</>;
+};
+
+const HomeRoute = () => {
+    const { user, loading } = useAuth();
+    
+    if (loading) return <LoadingSpinner />;
+    if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user?.role === 'teacher') return <Navigate to="/teacher" replace />;
+    
+    return <Home />;
 };
 
 const AppRouter = () => {
@@ -55,7 +64,7 @@ const AppRouter = () => {
                 <Header />
                 <main className="min-h-screen">
                     <Routes>
-                        <Route path="/" element={<Home />} />
+                        <Route path="/" element={<HomeRoute />} />
 
                         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
                         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
