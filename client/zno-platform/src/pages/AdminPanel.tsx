@@ -2,18 +2,8 @@ import { useState } from "react";
 import AdminLogsTab from '../components/AdminLogsTab';
 import AdminUsersTab from "../components/AdminUsersTab";
 import AdminRolesTab from "../components/AdminRolesTab";
+import AdminAnalyticsTab from "../components/AdminAnalyticsTab";
 import "./TeacherDashboard.scss";
-
-function AdminAnalyticsTab() {
-  return (
-    <div className="td-form" style={{width: '100vw', margin: '0 auto'}}>
-      <h2>📊 Загальна аналітика платформи</h2>
-      <div style={{ background: "var(--td-surface-2)", padding: "20px", borderRadius: "8px", textAlign: "center" }}>
-        🚧 В розробці
-      </div>
-    </div>
-  );
-}
 
 function AdminModerationTab() {
   return (

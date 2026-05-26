@@ -926,6 +926,89 @@ app.get("/api/groups/:groupId/analytics", requireAuth, requireRole(["teacher", "
   }
 });
 
+app.get("/api/admin/analytics", requireAuth, requireRole(["admin"]), async (_req: Request, res: Response) => {
+  try {
+    const [
+      { count: totalStudents },
+      { count: totalTeachers },
+      { data: recentUsers },
+      { data: attempts },
+      { data: topics },
+    ] = await Promise.all([
+      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
+      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }).eq("role", "teacher"),
+      supabaseAdmin.from("profiles")
+        .select("id, username, email, role, created_at, group_students(group_id, groups(name))")
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabaseAdmin.from("test_attempts")
+        .select("score, total_questions, created_at, topic_id, subject_id"),
+      supabaseAdmin.from("topics")
+        .select("id, name, subjects(name)"),
+    ]);
+
+    const validAttempts = (attempts || []).filter((a: any) => a.total_questions > 0);
+    const avgScore = validAttempts.length
+      ? validAttempts.reduce((s: number, a: any) => s + a.score, 0) / validAttempts.length
+      : 0;
+    const avgPercent = validAttempts.length
+      ? validAttempts.reduce((s: number, a: any) => s + (a.score / a.total_questions) * 100, 0) / validAttempts.length
+      : 0;
+
+    const now = new Date();
+    const weeks: { label: string; count: number; avgPercent: number }[] = [];
+    for (let i = 7; i >= 0; i--) {
+      const from = new Date(now);
+      from.setDate(from.getDate() - i * 7 - 6);
+      const to = new Date(now);
+      to.setDate(to.getDate() - i * 7);
+      const label = `${from.getDate()}.${String(from.getMonth() + 1).padStart(2, "0")}`;
+      const weekAttempts = validAttempts.filter((a: any) => {
+        const d = new Date(a.created_at);
+        return d >= from && d <= to;
+      });
+      weeks.push({
+        label,
+        count: weekAttempts.length,
+        avgPercent: weekAttempts.length
+          ? Math.round(weekAttempts.reduce((s: number, a: any) => s + (a.score / a.total_questions) * 100, 0) / weekAttempts.length)
+          : 0,
+      });
+    }
+
+    const topicMap: Record<string, { name: string; subjectName: string; total: number; correct: number }> = {};
+    for (const a of validAttempts) {
+      if (!a.topic_id) continue;
+      const topic = (topics || []).find((t: any) => t.id === a.topic_id);
+      if (!topic) continue;
+      if (!topicMap[a.topic_id]) topicMap[a.topic_id] = {
+        name: topic.name,
+        subjectName: (topic.subjects as any)?.name ?? "—",
+        total: 0, correct: 0,
+      };
+      topicMap[a.topic_id].total += a.total_questions;
+      topicMap[a.topic_id].correct += a.score;
+    }
+    const hardestTopics = Object.entries(topicMap)
+      .map(([id, v]) => ({ id, ...v, avgPercent: Math.round((v.correct / v.total) * 100) }))
+      .sort((a, b) => a.avgPercent - b.avgPercent)
+      .slice(0, 7);
+
+    return res.json({
+      totalStudents: totalStudents ?? 0,
+      totalTeachers: totalTeachers ?? 0,
+      recentUsers: recentUsers ?? [],
+      avgScore: Math.round(avgScore * 10) / 10,
+      avgPercent: Math.round(avgPercent),
+      totalAttempts: validAttempts.length,
+      weeklyDynamics: weeks,
+      hardestTopics,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/review/pending", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
   try {
     const { data: answers, error: answersError } = await supabaseAdmin
