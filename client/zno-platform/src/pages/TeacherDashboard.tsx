@@ -572,58 +572,60 @@ export default function TeacherDashboard() {
         <div className="td-inner">
           <div className="td-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "15px" }}>
             <h1>👨‍🏫 Панель викладача Examix</h1>
+            <p style={{ color: "var(--td-text-muted)", margin: 0 }}>
+              Керування питаннями, групами, призначеннями та статистикою
+            </p>
 
-            <div className="tabs-navigation" style={{ display: "flex", gap: "8px", width: "100%", flexWrap: "wrap" }}>
-              <button
-                className={`td-btn-new ${activeTab === "questions" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("questions")}
-                style={{
-                  background: activeTab === "questions" ? "var(--td-accent)" : "var(--td-surface-2)",
-                  color: activeTab === "questions" ? "#0f1117" : "var(--td-text)",
-                }}
-              >
-                📚 Керування питаннями
-              </button>
-              <button
-                className={`td-btn-new ${activeTab === "groups" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("groups")}
-                style={{
-                  background: activeTab === "groups" ? "var(--td-accent)" : "var(--td-surface-2)",
-                  color: activeTab === "groups" ? "#0f1117" : "var(--td-text)",
-                }}
-              >
-                👥 Навчальні групи
-              </button>
-              <button
-                className={`td-btn-new ${activeTab === "assignments" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("assignments")}
-                style={{
-                  background: activeTab === "assignments" ? "var(--td-accent)" : "var(--td-surface-2)",
-                  color: activeTab === "assignments" ? "#0f1117" : "var(--td-text)",
-                }}
-              >
-                📅 Призначення тестів
-              </button>
-              <button
-                className={`td-btn-new ${activeTab === "analytics" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("analytics")}
-                style={{
-                  background: activeTab === "analytics" ? "var(--td-accent)" : "var(--td-surface-2)",
-                  color: activeTab === "analytics" ? "#0f1117" : "var(--td-text)",
-                }}
-              >
-                📊 Статистика учнів
-              </button>
-              <button
-                className={`td-btn-new ${activeTab === "review" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("review")}
-                style={{
-                  background: activeTab === "review" ? "var(--td-accent)" : "var(--td-surface-2)",
-                  color: activeTab === "review" ? "#0f1117" : "var(--td-text)",
-                }}
-              >
-                📝 Відкриті відповіді ({pendingReviews.length})
-              </button>
+            <div style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "16px",
+              marginTop: "10px",
+              width: "100%",
+            }}>
+              {([
+                { id: "questions" as const, icon: "📚", title: "Керування питаннями"},
+                { id: "groups" as const, icon: "👥", title: "Навчальні групи"},
+                { id: "assignments" as const, icon: "📅", title: "Призначення тестів"},
+                { id: "analytics" as const, icon: "📊", title: "Статистика учнів"},
+                // { id: "review" as const, icon: "📝", title: "Відкриті відповіді"},
+              ] as const).map((item) => (
+                <div
+                  key={item.id}
+                  className="td-q-card"
+                  onClick={() => setActiveTab(item.id)}
+                  style={{
+                    cursor: "pointer",
+                    border: activeTab === item.id ? "2px solid var(--td-accent)" : "1px solid var(--td-surface-2)",
+                    background: activeTab === item.id ? "rgba(110, 207, 160, 0.1)" : "var(--td-surface)",
+                    padding: "20px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center",
+                    transition: "all 0.2s ease",
+                    minHeight: "150px",
+                    width: "200px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>
+                    {item.icon}
+                  </div>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", fontWeight: 600 }}>
+                    {item.title}
+                  </h3>
+                  <p style={{
+                    color: "var(--td-text-muted)",
+                    fontSize: "0.82rem",
+                    lineHeight: "1.4",
+                    margin: 0,
+                    flexGrow: 1,
+                  }}>
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -914,6 +916,37 @@ export default function TeacherDashboard() {
                                     if (!Array.isArray(parsedOptions)) {
                                       return <span style={{ color: "var(--td-accent)" }}>Помилка структури options (не є масивом)</span>;
                                     }
+
+                                    if (q.type === 'sequence' || q.type === 'sequense' || q.type === 'order') {
+                                      let correct = q.correct_answer;
+                                      if (typeof correct === 'string') {
+                                        try { correct = JSON.parse(correct); } catch {}
+                                      }
+                                      if (Array.isArray(correct)) {
+                                        const isIndexBased = correct.every(
+                                          (v: any) => !isNaN(Number(v)) && Number(v) < parsedOptions.length
+                                        );
+                                        const labels = parsedOptions.map((o: any) =>
+                                          typeof o === 'string' ? o : (o?.text || o?.content || String(o))
+                                        );
+                                        const ordered = isIndexBased
+                                          ? correct.map((idx: any) => labels[Number(idx)]).filter(Boolean)
+                                          : correct;
+                                        return (
+                                          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
+                                            {ordered.map((item: string, i: number) => (
+                                              <span key={i}>
+                                                <span style={{ color: "var(--td-success)", fontWeight: 600 }}>{i + 1}.</span>{" "}
+                                                <MathText text={item} />
+                                                {i < ordered.length - 1 && <span style={{ margin: "0 4px" }}>→</span>}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        );
+                                      }
+                                      return <span>{String(correct)}</span>;
+                                    }
+
                                     const correctOnes = parsedOptions.filter((o: any) => o && o.isCorrect) || [];
                                     if (correctOnes.length > 0) {
                                       return correctOnes.map((o: any, i: number) => (
