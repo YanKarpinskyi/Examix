@@ -1,6 +1,7 @@
 import { useState, useEffect,  } from "react";
 import { apiClient } from "../services/apiClient";
 import { BanConfirmModal } from "../components/BanConfirmModal";
+import { AddUserModal } from "../components/AddUserModal";
 
 interface UserProfile {
   id: string;
@@ -20,6 +21,8 @@ function AdminUsersTab() {
     open: false, user: null, action: "ban",
   });
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -108,6 +111,9 @@ function AdminUsersTab() {
             </span>
           </button>
         ))}
+        <button className="td-btn-new" onClick={() => setAddModalOpen(true)}>
+          ➕ Додати
+        </button>
       </div>
 
       {loading ? (
@@ -208,6 +214,13 @@ function AdminUsersTab() {
           action={banModal.action}
           onConfirm={confirmBan}
           onCancel={() => setBanModal({ open: false, user: null, action: "ban" })}
+        />
+      )}
+
+      {addModalOpen && (
+        <AddUserModal
+            onClose={() => setAddModalOpen(false)}
+            onSuccess={loadUsers}
         />
       )}
     </div>

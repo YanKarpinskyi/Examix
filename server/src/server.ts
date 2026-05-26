@@ -506,6 +506,39 @@ app.get("/api/admin/users", requireAuth, requireRole(["admin"]), async (_req: Re
   res.json({ users: data });
 });
 
+app.post("/api/admin/users", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
+  const { email, password, username, role } = req.body;
+  const adminId = (req as any).userId;
+
+  if (!email || !password || !username || !role) {
+    return res.status(400).json({ error: "Всі поля обов'язкові" });
+  }
+
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { username, role },
+  });
+
+  if (authError) return res.status(400).json({ error: authError.message });
+
+  const { error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .update({ role, username })
+    .eq("id", authData.user.id);
+
+  if (profileError) return res.status(500).json({ error: profileError.message });
+
+  await logAction(adminId, "create_user", {
+    createdUserId: authData.user.id,
+    email,
+    role,
+  });
+
+  return res.status(201).json({ success: true, userId: authData.user.id });
+});
+
 app.get("/api/admin/logs", requireAuth, requireRole(["admin"]), async (req: Request, res: Response) => {
   const { search, limit = "50", offset = "0" } = req.query;
 
