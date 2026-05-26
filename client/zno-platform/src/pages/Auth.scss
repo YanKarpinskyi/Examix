@@ -1,4 +1,4 @@
-@use '../styles//variables';
+@use '../styles/variables';
 
 .auth-container {
   display: flex;
@@ -35,12 +35,12 @@
     }
   }
 
-    h2 {
-      font-size: 1.2rem;
-      color: #000000;
-      margin-bottom: 3px;         
-      line-height: 1;    
-    }
+  h2 {
+    font-size: 1.2rem;
+    color: #000000;
+    margin-bottom: 3px;
+    line-height: 1;
+  }
 
   .auth-titles {
     text-align: center;
@@ -61,7 +61,7 @@
 .google-btn {
   width: 100%;
   padding: 12px;
-  border: 1px solid variables.$border-color;
+  border: 1.5px solid #e2e8f0;
   background: white;
   border-radius: 12px;
   display: flex;
@@ -70,11 +70,24 @@
   gap: 10px;
   cursor: pointer;
   font-weight: 500;
-  transition: 0.3s;
-  color: #000000;
+  font-size: 0.95rem;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  color: #1a1a1a;
 
   &:hover {
-    background: #4fc9c7;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    background: #e8f0fe;
+    border-color: #4285f4;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   img {
@@ -115,28 +128,55 @@
     font-size: 0.9rem;
     font-weight: 600;
     color: #444;
+    transition: color 0.2s;
+  }
+
+  &:focus-within label {
+    color: #2c4d94;
   }
 
   input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #9ecdbe;
+    border: 1.5px solid #c8d8d2;
     border-radius: 12px;
     outline: none;
-    transition: 0.3s;
-    background-color: #d8d8d8;
-    color: #000000;
+    background-color: #f0f4f8;
+    color: #111;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 
-      &:-webkit-autofill,
-      &:-webkit-autofill:hover,
-      &:-webkit-autofill:focus {
-        -webkit-box-shadow: 0 0 0px 1000px #d8d8d8 inset;
-        -webkit-text-fill-color: #000000;
-      }
+    &::placeholder {
+      color: #a0aec0;
+    }
+
+    &:hover:not(:focus) {
+      border-color: #a0b8c8;
+      background-color: #e8eff5;
+    }
+
+    &:focus {
+      border-color: #2c4d94;
+      background-color: #fff;
+      box-shadow: 0 0 0 3px rgba(44, 77, 148, 0.12);
+    }
+
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0px 1000px #f0f4f8 inset;
+      -webkit-text-fill-color: #111;
+      transition: background-color 9999s ease-in-out 0s;
+    }
   }
 
   .password-wrapper {
     position: relative;
+
+    input {
+      padding-right: 44px;
+    }
 
     .toggle-password {
       position: absolute;
@@ -147,12 +187,16 @@
       border: none;
       cursor: pointer;
       font-size: 1.1rem;
+      color: #94a3b8;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #2c4d94;
+      }
     }
   }
-}
-
-input:focus {
-  border-color: #d6d6d6;
 }
 
 .authOptions {
@@ -173,6 +217,10 @@ input:focus {
     color: variables.$primary-purple;
     text-decoration: none;
     font-weight: 600;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
@@ -180,17 +228,27 @@ input:focus {
   width: 100%;
   padding: 14px;
   background: #2c4d94;
-  border: 1px solid variables.$border-color;
+  border: none;
   border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.3s;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
   color: #ffffff;
+  margin-top: 4px;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #1b3367;
-    border-color: variables.$primary-purple;
+    box-shadow: 0 4px 12px rgba(44, 77, 148, 0.3);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
   }
 }
 
@@ -204,36 +262,72 @@ input:focus {
     color: variables.$primary-purple;
     text-decoration: none;
     font-weight: 600;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
 .auth-select {
   width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-
-  background-color: rgb(215, 255, 244);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #c8d8d2;
+  background-color: #f0f4f8;
   color: #111827;
-
-  font-size: 15px;
-
+  font-size: 0.95rem;
   outline: none;
-
   appearance: auto;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+
+  &:hover:not(:disabled):not(:focus) {
+    border-color: #a0b8c8;
+    background-color: #e8eff5;
+  }
+
+  &:focus {
+    border-color: #2c4d94;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(44, 77, 148, 0.12);
+  }
+
+  &:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    border-color: #e5e7eb;
+  }
+
+  option {
+    background-color: #f0f0f0;
+    color: black;
+  }
+
+  option:checked {
+    background-color: rgb(43, 202, 183);
+  }
 }
 
-.auth-select:disabled {
-  background-color: #f3f4f6;
-  color: #9ca3af;
-  cursor: not-allowed;
+.error-message {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  text-align: center;
 }
 
-.auth-select option {
-  background-color: rgb(240, 240, 240);
-  color: black;
-}
-
-.auth-select option:checked {
-  background-color: rgb(43, 202, 183);
+.success-message {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  text-align: center;
 }

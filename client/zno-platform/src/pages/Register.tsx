@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../services/authService";
-import "./Auth.scss";
 import googleIcon from "../assets/auth/google-logo.png";
+import { supabase } from "../services/supabaseClient";
+import "./Auth.scss";
 
 interface GroupOption {
   id: string;
@@ -49,6 +50,15 @@ function Register() {
     }
     fetchGroups();
   }, []);
+
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  };
 
   const handleFacultyChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const faculty = e.target.value;
@@ -127,9 +137,9 @@ function Register() {
           <p>Приєднуйся до спільноти Examix</p>
         </div>
 
-        <button className="google-btn" type="button">
+        <button className="google-btn" type="button" onClick={handleGoogleLogin}>
           <img src={googleIcon} alt="Google" />
-          <span>Зареєструватися через Google</span>
+          <p>Зареєструватися через Google</p>
         </button>
 
         <div className="divider">

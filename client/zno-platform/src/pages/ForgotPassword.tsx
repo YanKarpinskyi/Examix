@@ -32,11 +32,13 @@ export default function ForgotPassword() {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <h2>Відновлення пароля</h2>
-                <p>Введіть email, щоб отримати посилання для зміни пароля.</p>
+                <div className="auth-titles">
+                    <h1>Відновлення пароля</h1>
+                    <p>Введіть email, щоб отримати посилання для зміни пароля.</p>
+                </div>
                 
-                {message && <div style={{ color: 'green', marginBottom: '1rem' }}>{message}</div>}
-                {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+                {message && <div className="success-message">{message}</div>}
+                {error && <div className="error-message">{error}</div>}
 
                 <form onSubmit={handleReset}>
                     <div className="input-group">

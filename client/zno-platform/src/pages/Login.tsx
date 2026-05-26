@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import authService from "../services/authService";
 import googleIcon from "../assets/auth/google-logo.png";
+import { supabase } from "../services/supabaseClient";
 import "./Auth.scss";
 
 function BannedModal({ onClose }: { onClose: () => void }) {
@@ -59,6 +60,15 @@ function Login() {
     }));
   };
 
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -104,7 +114,7 @@ function Login() {
           <p>Раді бачити тебе знову</p>
         </div>
 
-        <button className="google-btn" type="button">
+        <button className="google-btn" type="button" onClick={handleGoogleLogin}>
           <img src={googleIcon} alt="Google" />
           <p>Увійти через Google</p>
         </button>
