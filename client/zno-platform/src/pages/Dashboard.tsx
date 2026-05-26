@@ -130,7 +130,7 @@ function Dashboard() {
                           if (a.topic?.id) {
                             navigate(`/topic/${a.topic.id}/quiz`);
                           } else if (a.subject?.id) {
-                            navigate(`/subject/${a.subject.id}`);
+                            navigate(`/quiz/nmt/${a.subject.id}`);
                           }
                         }}
                       >

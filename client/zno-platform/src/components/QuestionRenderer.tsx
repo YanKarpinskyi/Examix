@@ -201,7 +201,11 @@ const QuestionRenderer = memo(({ question, onAnswer, savedAnswer, showResult }: 
       }
 
     case 'sequence':
+    case 'sequense':
     case 'order': {
+        console.log("SEQUENCE options raw:", JSON.stringify(question.options));
+        console.log("SEQUENCE correct_answer raw:", JSON.stringify(question.correct_answer));
+        console.log("SEQUENCE savedAnswer:", JSON.stringify(savedAnswer));
         let flatOptions: string[] = [];
 
         if (question.options) {
