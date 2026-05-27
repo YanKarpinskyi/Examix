@@ -76,15 +76,11 @@ export default function QuizPage({ mode = 'default' }: QuizPageProps) {
           setQuestions(finalPool);
         } 
         else if (isErrorMode && topicId) {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-          const { data } = await supabase
-            .from('user_errors')
-            .select('question_id, questions(*)')
-            .eq('user_id', user.id)
-            .eq('topic_id', topicId);
-          setQuestions(data?.map((item: any) => item.questions) || []);
-        } 
+            const response = await apiClient.request<{ questions: any[] }>(
+                `/student/topics/${topicId}/error-questions`
+            );
+            setQuestions(response.questions || []);
+        }
         else if (topicId) {
           const response = await apiClient.request<{ questions: any[] }>(
             `/student/topics/${topicId}/questions`

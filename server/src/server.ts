@@ -213,7 +213,9 @@ app.post("/api/student/submit-test", requireAuth, withLogging("submit_test"), as
                     .single();
 
                 const options: string[] = fullQ?.options ?? [];
-                
+                if (!correctAnswer || !Array.isArray(correctAnswer)) {
+                    continue;
+                }
                 const correctWords = (correctAnswer as string[]).map(
                     (idx: string) => options[Number(idx)]
                 );
@@ -255,6 +257,72 @@ app.post("/api/student/submit-test", requireAuth, withLogging("submit_test"), as
             .single();
 
         if (error) throw error;
+
+        const wrongQuestionIds: string[] = [];
+        for (const question of questions || []) {
+          const userAnswer = answers[question.id];
+          if (userAnswer === undefined || userAnswer === null) {
+            continue;
+          }
+
+          let isCorrect = false;
+          if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
+            const { data: fullQ } = await supabaseAdmin.from('questions').select('options').eq('id', question.id).single();
+            const options: string[] = fullQ?.options ?? [];
+            if (!question.correct_answer || !Array.isArray(question.correct_answer)) continue;
+            const correctWords = (question.correct_answer as string[]).map((idx: string) => options[Number(idx)]);
+            isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctWords);
+          } else if (question.type === 'multiple') {
+            const userSorted = [...(userAnswer as string[])].sort();
+            const correctSorted = [...(question.correct_answer as string[])].sort();
+            isCorrect = JSON.stringify(userSorted) === JSON.stringify(correctSorted);
+          } else if (question.type === 'matching') {
+            isCorrect = JSON.stringify(userAnswer) === JSON.stringify(question.correct_answer);
+          } else {
+            const u = String(userAnswer).trim().toLowerCase();
+            const c = Array.isArray(question.correct_answer)
+              ? question.correct_answer.map((x: any) => String(x).trim().toLowerCase())
+              : [String(question.correct_answer).trim().toLowerCase()];
+            isCorrect = c.includes(u);
+          }
+
+          if (!isCorrect) wrongQuestionIds.push(question.id);
+        }
+
+        if (wrongQuestionIds.length > 0) {
+          const { data: wrongQuestions } = await supabaseAdmin
+            .from('questions')
+            .select('id, topic_id')
+            .in('id', wrongQuestionIds);
+
+          if (wrongQuestions && wrongQuestions.length > 0) {
+            await supabaseAdmin
+              .from('user_errors')
+              .delete()
+              .eq('user_id', userId)
+              .in('question_id', wrongQuestionIds);
+
+            await supabaseAdmin.from('user_errors').insert(
+              wrongQuestions.map((q: any) => ({
+                user_id: userId,
+                question_id: q.id,
+                topic_id: q.topic_id,
+              }))
+            );
+          }
+        }
+
+        const correctIds = (questions || [])
+          .map((q: any) => q.id)
+          .filter((id: string) => !wrongQuestionIds.includes(id));
+
+        if (correctIds.length > 0) {
+          await supabaseAdmin
+            .from('user_errors')
+            .delete()
+            .eq('user_id', userId)
+            .in('question_id', correctIds);
+        }
 
         return res.status(201).json({ attemptId: data.id, score, totalPoints });
 
@@ -1107,6 +1175,44 @@ app.get("/api/review/pending", requireAuth, requireRole(["teacher", "admin"]), a
       details: err.message 
     });
   }
+});
+
+app.get("/api/student/errors/counts", requireAuth, async (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('user_errors')
+            .select('topic_id')
+            .eq('user_id', userId);
+        if (error) throw error;
+
+        const counts: Record<string, number> = {};
+        (data || []).forEach((row: any) => {
+            counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
+        });
+
+        return res.json({ counts });
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/api/student/topics/:topicId/error-questions", requireAuth, async (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const topicId = getParam(req, 'topicId');
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('user_errors')
+            .select('question_id, questions(*)')
+            .eq('user_id', userId)
+            .eq('topic_id', topicId);
+        if (error) throw error;
+
+        const questions = (data || []).map((item: any) => item.questions).filter(Boolean);
+        return res.json({ questions });
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message });
+    }
 });
 
 app.patch("/api/review/:answerId", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { apiClient } from '../services/apiClient';
 import './SubjectDetail.scss';
 
 interface Topic {
@@ -38,19 +39,10 @@ function SubjectDetail() {
                 .eq('subject_id', subjectId);
             setTopics(topicsData || []);
 
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: errorData } = await supabase
-                    .from('user_errors')
-                    .select('topic_id')
-                    .eq('user_id', user.id);
-
-                const counts = errorData?.reduce((acc: any, curr: any) => {
-                    acc[curr.topic_id] = (acc[curr.topic_id] || 0) + 1;
-                    return acc;
-                }, {});
-                setErrorCounts(counts || {});
-            }
+            const { counts } = await apiClient.request<{ counts: Record<string, number> }>(
+                '/student/errors/counts'
+            );
+            setErrorCounts(counts || {});
 
             setLoading(false);
         }
