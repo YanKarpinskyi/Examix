@@ -1,8 +1,9 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import { supabaseAdmin } from "./config/db";
-import type { RegisterDTO, LoginRequest, Role } from "@zno/shared";
+import { requireAuth, requireRole, detectRoleByEmail } from "./middleware/auth.js";
+import { logAction, withLogging } from "./middleware/logging.js";
 
 const getParam = (req: Request, paramName: string): string => {
   const value = req.params[paramName];
@@ -16,67 +17,69 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
+const JWT_SECRET = process.env.JWT_SECRET ?? "fallback_secret";
 
-async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-    return res.status(401).json({ error: "Токен відсутній або має неправильний формат" });
+function checkAnswer(question: any, userAnswer: any, options?: string[]): boolean {
+  if (userAnswer === undefined || userAnswer === null) return false;
+
+  if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
+    if (!question.correct_answer || !Array.isArray(question.correct_answer)) return false;
+    const correctWords = (question.correct_answer as string[]).map((idx: string) => (options ?? [])[Number(idx)]);
+    return JSON.stringify(userAnswer) === JSON.stringify(correctWords);
   }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: Role };
-    console.log("🔍 [AUTH DEBUG] Роль в токені:", decoded.role);
-    (req as any).userId = decoded.userId;
-    (req as any).userEmail = decoded.email;
-    (req as any).userRole = decoded.role;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Невалідний або прострочений токен" });
+  if (question.type === 'multiple') {
+    const userSorted = [...(userAnswer as string[])].sort((a, b) => a.localeCompare(b));
+    const correctSorted = [...(question.correct_answer as string[])].sort((a, b) => a.localeCompare(b));
+    return JSON.stringify(userSorted) === JSON.stringify(correctSorted);
   }
-}
-
-async function logAction(userId: string, action: string, details?: any) {
-  try {
-    await supabaseAdmin.from("user_logs").insert([{
-      user_id: userId,
-      action,
-      details: details ?? null,
-    }]);
-  } catch (err) {
-    console.error("❌ Log error:", err);
+  if (question.type === 'matching') {
+    return JSON.stringify(userAnswer) === JSON.stringify(question.correct_answer);
   }
+  const u = String(userAnswer).trim().toLowerCase();
+  const c = Array.isArray(question.correct_answer)
+    ? question.correct_answer.map((x: any) => String(x).trim().toLowerCase())
+    : [String(question.correct_answer).trim().toLowerCase()];
+  return c.includes(u);
 }
 
-function withLogging(action: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const originalJson = res.json.bind(res);
-    res.json = (body: any) => {
-      if (res.statusCode < 400) {
-        const userId = (req as any).userId;
-        if (userId) logAction(userId, action, req.body);
-      }
-      return originalJson(body);
-    };
-    next();
-  };
+function buildSubjectStats(sessions: any[]) {
+  const subjectMap: Record<string, { name: string; attempts: number; totalScore: number; totalQ: number }> = {};
+  for (const s of sessions) {
+    const key = s.topic?.subjects?.id ?? s.subject?.id ?? "nmt";
+    if (!subjectMap[key]) subjectMap[key] = { name: s.subjectName, attempts: 0, totalScore: 0, totalQ: 0 };
+    subjectMap[key].attempts++;
+    subjectMap[key].totalScore += s.score;
+    subjectMap[key].totalQ += s.total_questions;
+  }
+  return Object.entries(subjectMap).map(([id, v]) => ({
+    id, name: v.name, attempts: v.attempts,
+    avgPercent: v.totalQ > 0 ? Math.round((v.totalScore / v.totalQ) * 100) : 0,
+  }));
 }
 
-function requireRole(roles: Role[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const userRole = (req as any).userRole;
-    if (!roles.includes(userRole)) {
-      return res.status(403).json({ error: "Недостатньо прав" });
-    }
-    next();
-  };
+function buildTopicStats(sessions: any[]) {
+  const topicMap: Record<string, { name: string; subjectName: string; attempts: number; totalScore: number; totalQ: number }> = {};
+  for (const s of sessions) {
+    if (!s.topic?.id) continue;
+    const key = s.topic.id;
+    if (!topicMap[key]) topicMap[key] = { name: s.topic.name, subjectName: s.subjectName, attempts: 0, totalScore: 0, totalQ: 0 };
+    topicMap[key].attempts++;
+    topicMap[key].totalScore += s.score;
+    topicMap[key].totalQ += s.total_questions;
+  }
+  return Object.entries(topicMap).map(([id, v]) => ({
+    id, name: v.name, subjectName: v.subjectName, attempts: v.attempts,
+    avgPercent: v.totalQ > 0 ? Math.round((v.totalScore / v.totalQ) * 100) : 0,
+  })).sort((a, b) => a.avgPercent - b.avgPercent);
 }
 
-function detectRoleByEmail(email: string): Role {
-  return email.endsWith("@knu.edu.ua") ? "teacher" : "student";
+async function getSequenceOptions(questionId: string): Promise<string[]> {
+  const { data: fullQ } = await supabaseAdmin
+    .from('questions')
+    .select('options')
+    .eq('id', questionId)
+    .single();
+  return fullQ?.options ?? [];
 }
 
 app.post("/api/auth/register", async (req: Request, res: Response) => {
@@ -129,7 +132,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
     });
   }
 
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+  const { error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
   if (error) return res.status(400).json({ error: "Невірний email або пароль" });
 
   const token = jwt.sign(
@@ -179,157 +182,130 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/student/submit-test", requireAuth, withLogging("submit_test"), async (req: Request, res: Response) => {
-    try {
-        const { topic_id, subject_id, mode, answers, group_assignment_id } = req.body;
-        const userId = (req as any).userId;
+async function scoreQuestions(
+  questions: any[],
+  answers: Record<string, any>
+): Promise<{ score: number; totalPoints: number }> {
+  let score = 0;
+  let totalPoints = 0;
 
-        const questionIds = Object.keys(answers);
-        const { data: questions, error: qError } = await supabaseAdmin
-            .from('questions')
-            .select('id, type, correct_answer, points')
-            .in('id', questionIds);
+  for (const question of questions) {
+    const userAnswer = answers[question.id];
+    const points = question.points ?? 1;
+    totalPoints += points;
 
-        if (qError) throw qError;
+    if (userAnswer === undefined || userAnswer === null) continue;
 
-        let score = 0;
-        let totalPoints = 0;
-
-        for (const question of questions || []) {
-            const userAnswer = answers[question.id];
-            const correctAnswer = question.correct_answer;
-            const points = question.points ?? 1;
-            totalPoints += points;
-
-            if (userAnswer === undefined || userAnswer === null) continue;
-
-            let isCorrect = false;
-
-            if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
-                const { data: fullQ } = await supabaseAdmin
-                    .from('questions')
-                    .select('options')
-                    .eq('id', question.id)
-                    .single();
-
-                const options: string[] = fullQ?.options ?? [];
-                if (!correctAnswer || !Array.isArray(correctAnswer)) {
-                    continue;
-                }
-                const correctWords = (correctAnswer as string[]).map(
-                    (idx: string) => options[Number(idx)]
-                );
-
-                isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctWords);
-
-            } else if (question.type === 'multiple') {
-                const userSorted = [...(userAnswer as string[])].sort();
-                const correctSorted = [...(correctAnswer as string[])].sort();
-                isCorrect = JSON.stringify(userSorted) === JSON.stringify(correctSorted);
-
-            } else if (question.type === 'matching') {
-                isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctAnswer);
-
-            } else {
-                const u = String(userAnswer).trim().toLowerCase();
-                const c = Array.isArray(correctAnswer)
-                    ? correctAnswer.map((x: any) => String(x).trim().toLowerCase())
-                    : [String(correctAnswer).trim().toLowerCase()];
-                isCorrect = c.includes(u);
-            }
-
-            if (isCorrect) score += points;
-        }
-
-        const { data, error } = await supabaseAdmin
-            .from('test_attempts')
-            .insert([{
-                user_id: userId,
-                topic_id: topic_id ?? null,
-                subject_id: subject_id ?? null,
-                mode: mode,
-                answers: answers,
-                score: score,
-                total_questions: questionIds.length,
-                group_assignment_id: group_assignment_id ?? null,
-            }])
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        const wrongQuestionIds: string[] = [];
-        for (const question of questions || []) {
-          const userAnswer = answers[question.id];
-          if (userAnswer === undefined || userAnswer === null) {
-            continue;
-          }
-
-          let isCorrect = false;
-          if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
-            const { data: fullQ } = await supabaseAdmin.from('questions').select('options').eq('id', question.id).single();
-            const options: string[] = fullQ?.options ?? [];
-            if (!question.correct_answer || !Array.isArray(question.correct_answer)) continue;
-            const correctWords = (question.correct_answer as string[]).map((idx: string) => options[Number(idx)]);
-            isCorrect = JSON.stringify(userAnswer) === JSON.stringify(correctWords);
-          } else if (question.type === 'multiple') {
-            const userSorted = [...(userAnswer as string[])].sort();
-            const correctSorted = [...(question.correct_answer as string[])].sort();
-            isCorrect = JSON.stringify(userSorted) === JSON.stringify(correctSorted);
-          } else if (question.type === 'matching') {
-            isCorrect = JSON.stringify(userAnswer) === JSON.stringify(question.correct_answer);
-          } else {
-            const u = String(userAnswer).trim().toLowerCase();
-            const c = Array.isArray(question.correct_answer)
-              ? question.correct_answer.map((x: any) => String(x).trim().toLowerCase())
-              : [String(question.correct_answer).trim().toLowerCase()];
-            isCorrect = c.includes(u);
-          }
-
-          if (!isCorrect) wrongQuestionIds.push(question.id);
-        }
-
-        if (wrongQuestionIds.length > 0) {
-          const { data: wrongQuestions } = await supabaseAdmin
-            .from('questions')
-            .select('id, topic_id')
-            .in('id', wrongQuestionIds);
-
-          if (wrongQuestions && wrongQuestions.length > 0) {
-            await supabaseAdmin
-              .from('user_errors')
-              .delete()
-              .eq('user_id', userId)
-              .in('question_id', wrongQuestionIds);
-
-            await supabaseAdmin.from('user_errors').insert(
-              wrongQuestions.map((q: any) => ({
-                user_id: userId,
-                question_id: q.id,
-                topic_id: q.topic_id,
-              }))
-            );
-          }
-        }
-
-        const correctIds = (questions || [])
-          .map((q: any) => q.id)
-          .filter((id: string) => !wrongQuestionIds.includes(id));
-
-        if (correctIds.length > 0) {
-          await supabaseAdmin
-            .from('user_errors')
-            .delete()
-            .eq('user_id', userId)
-            .in('question_id', correctIds);
-        }
-
-        return res.status(201).json({ attemptId: data.id, score, totalPoints });
-
-    } catch (err: any) {
-        console.error("❌ Помилка при збереженні тесту:", err);
-        return res.status(500).json({ error: "Не вдалося зберегти результати тесту" });
+    let options: string[] = [];
+    if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
+      options = await getSequenceOptions(question.id);
     }
+
+    if (checkAnswer(question, userAnswer, options)) score += points;
+  }
+
+  return { score, totalPoints };
+}
+
+async function getWrongQuestionIds(
+  questions: any[],
+  answers: Record<string, any>
+): Promise<string[]> {
+  const wrongIds: string[] = [];
+
+  for (const question of questions) {
+    const userAnswer = answers[question.id];
+    if (userAnswer === undefined || userAnswer === null) continue;
+
+    let options: string[] = [];
+    if (question.type === 'sequence' || question.type === 'sequense' || question.type === 'order') {
+      options = await getSequenceOptions(question.id);
+    }
+
+    if (!checkAnswer(question, userAnswer, options)) wrongIds.push(question.id);
+  }
+
+  return wrongIds;
+}
+
+async function syncUserErrors(userId: string, questions: any[], wrongQuestionIds: string[]) {
+  if (wrongQuestionIds.length > 0) {
+    const { data: wrongQuestions } = await supabaseAdmin
+      .from('questions')
+      .select('id, topic_id')
+      .in('id', wrongQuestionIds);
+
+    if (wrongQuestions && wrongQuestions.length > 0) {
+      await supabaseAdmin
+        .from('user_errors')
+        .delete()
+        .eq('user_id', userId)
+        .in('question_id', wrongQuestionIds);
+
+      await supabaseAdmin.from('user_errors').insert(
+        wrongQuestions.map((q: any) => ({
+          user_id: userId,
+          question_id: q.id,
+          topic_id: q.topic_id,
+        }))
+      );
+    }
+  }
+
+  const correctIds = questions
+    .map((q: any) => q.id)
+    .filter((id: string) => !wrongQuestionIds.includes(id));
+
+  if (correctIds.length > 0) {
+    await supabaseAdmin
+      .from('user_errors')
+      .delete()
+      .eq('user_id', userId)
+      .in('question_id', correctIds);
+  }
+}
+
+app.post("/api/student/submit-test", requireAuth, withLogging("submit_test"), async (req: Request, res: Response) => {
+  try {
+    const { topic_id, subject_id, mode, answers, group_assignment_id } = req.body;
+    const userId = (req as any).userId;
+
+    const questionIds = Object.keys(answers);
+    const { data: questions, error: qError } = await supabaseAdmin
+      .from('questions')
+      .select('id, type, correct_answer, points')
+      .in('id', questionIds);
+
+    if (qError) throw qError;
+
+    const { score, totalPoints } = await scoreQuestions(questions || [], answers);
+
+    const { data, error } = await supabaseAdmin
+      .from('test_attempts')
+      .insert([{
+        user_id: userId,
+        topic_id: topic_id ?? null,
+        subject_id: subject_id ?? null,
+        mode,
+        answers,
+        score,
+        total_questions: questionIds.length,
+        group_assignment_id: group_assignment_id ?? null,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const wrongQuestionIds = await getWrongQuestionIds(questions || [], answers);
+    await syncUserErrors(userId, questions || [], wrongQuestionIds);
+
+    return res.status(201).json({ attemptId: data.id, score, totalPoints });
+
+  } catch (err: any) {
+    console.error("❌ Помилка при збереженні тесту:", err);
+    return res.status(500).json({ error: "Не вдалося зберегти результати тесту" });
+  }
 });
 
 app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Response) => {
@@ -379,13 +355,13 @@ app.get("/api/student/dashboard", requireAuth, async (req: Request, res: Respons
         const assignmentIds = (assignData || []).map((a: any) => a.id);
 
         const { data: completedAttempts } = await supabaseAdmin
-            .from("test_attempts")
-            .select("group_assignment_id")
-            .eq("user_id", userId)
-            .in("group_assignment_id", assignmentIds);
+          .from("test_attempts")
+          .select("group_assignment_id")
+          .eq("user_id", userId)
+          .in("group_assignment_id", assignmentIds);
 
         const completedIds = new Set(
-            (completedAttempts || []).map((a: any) => a.group_assignment_id)
+          (completedAttempts || []).map((a: any) => a.group_assignment_id)
         );
 
         assignments = (assignData || []).filter((a: any) => !completedIds.has(a.id));
@@ -519,7 +495,6 @@ app.patch("/api/teacher/questions/:id", requireAuth, requireRole(["teacher", "ad
   }
 });
 
-
 app.get("/api/teacher/groups", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabaseAdmin
@@ -628,10 +603,11 @@ app.get("/api/admin/logs", requireAuth, requireRole(["admin"]), async (req: Requ
     .range(Number(offset), Number(offset) + Number(limit) - 1);
 
   if (search) {
+    const searchStr = String(search);
     const { data: matchedProfiles } = await supabaseAdmin
       .from("profiles")
       .select("id")
-      .or(`username.ilike.%${search}%,email.ilike.%${search}%`);
+      .or(`username.ilike.%${searchStr}%,email.ilike.%${searchStr}%`);
 
     const ids = (matchedProfiles || []).map(p => p.id);
     if (ids.length === 0) return res.json({ logs: [] });
@@ -773,7 +749,6 @@ app.get("/api/assignments", requireAuth, async (req, res) => {
 });
 
 app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), withLogging("create_assignment"), async (req: Request, res: Response) => {
-  const requestStart = Date.now();
   console.log("======================================");
   console.log("📥 [CREATE ASSIGNMENT] REQUEST START");
 
@@ -791,16 +766,8 @@ app.post("/api/assignments", requireAuth, requireRole(["teacher", "admin"]), wit
     return res.status(400).json({ error: "groupId is required" });
   }
 
-  let finalSubjectId = subjectId;
-  let finalTopicId = topicId;
-
-  if (topicId) {
-    finalSubjectId = null;
-    finalTopicId = topicId;
-  } else {
-    finalSubjectId = subjectId;
-    finalTopicId = null;
-  }
+  const finalSubjectId = topicId ? null : subjectId;
+  const finalTopicId = topicId ?? null;
 
   if (!finalSubjectId && !finalTopicId) {
     return res.status(400).json({ error: "Потрібно вказати або предмет, або тему" });
@@ -1012,44 +979,74 @@ app.get("/api/groups/:groupId/analytics", requireAuth, requireRole(["teacher", "
       topicName: a.topic?.name ?? null,
     }));
 
-    const subjectMap: Record<string, { name: string; attempts: number; totalScore: number; totalQ: number }> = {};
-    for (const s of sessions) {
-      const key = s.topic?.subjects?.id ?? s.subject?.id ?? "nmt";
-      const name = s.subjectName;
-      if (!subjectMap[key]) subjectMap[key] = { name, attempts: 0, totalScore: 0, totalQ: 0 };
-      subjectMap[key].attempts++;
-      subjectMap[key].totalScore += s.score;
-      subjectMap[key].totalQ += s.total_questions;
-    }
-    const subjectStats = Object.entries(subjectMap).map(([id, v]) => ({
-      id,
-      name: v.name,
-      attempts: v.attempts,
-      avgPercent: v.totalQ > 0 ? Math.round((v.totalScore / v.totalQ) * 100) : 0,
-    }));
-
-    const topicMap: Record<string, { name: string; subjectName: string; attempts: number; totalScore: number; totalQ: number }> = {};
-    for (const s of sessions) {
-      if (!s.topic?.id) continue;
-      const key = s.topic.id;
-      if (!topicMap[key]) topicMap[key] = { name: s.topic.name, subjectName: s.subjectName, attempts: 0, totalScore: 0, totalQ: 0 };
-      topicMap[key].attempts++;
-      topicMap[key].totalScore += s.score;
-      topicMap[key].totalQ += s.total_questions;
-    }
-    const topicStats = Object.entries(topicMap).map(([id, v]) => ({
-      id,
-      name: v.name,
-      subjectName: v.subjectName,
-      attempts: v.attempts,
-      avgPercent: v.totalQ > 0 ? Math.round((v.totalScore / v.totalQ) * 100) : 0,
-    })).sort((a, b) => a.avgPercent - b.avgPercent);
+    const subjectStats = buildSubjectStats(sessions);
+    const topicStats = buildTopicStats(sessions);
 
     return res.json({ students, sessions, subjectStats, topicStats });
   } catch (err: any) {
     return res.status(500).json({ error: "Внутрішня помилка сервера", details: err.message });
   }
 });
+
+function calcAverages(validAttempts: any[]): { avgScore: number; avgPercent: number } {
+  if (!validAttempts.length) return { avgScore: 0, avgPercent: 0 };
+  const avgScore = validAttempts.reduce((s, a) => s + a.score, 0) / validAttempts.length;
+  const avgPercent = validAttempts.reduce((s, a) => s + (a.score / a.total_questions) * 100, 0) / validAttempts.length;
+  return { avgScore, avgPercent };
+}
+
+function buildWeeklyDynamics(validAttempts: any[]): { label: string; count: number; avgPercent: number }[] {
+  const now = new Date();
+  const weeks = [];
+
+  for (let i = 7; i >= 0; i--) {
+    const from = new Date(now);
+    from.setDate(from.getDate() - i * 7 - 6);
+    const to = new Date(now);
+    to.setDate(to.getDate() - i * 7);
+    const label = `${from.getDate()}.${String(from.getMonth() + 1).padStart(2, "0")}`;
+
+    const weekAttempts = validAttempts.filter((a) => {
+      const d = new Date(a.created_at);
+      return d >= from && d <= to;
+    });
+
+    weeks.push({
+      label,
+      count: weekAttempts.length,
+      avgPercent: weekAttempts.length
+        ? Math.round(weekAttempts.reduce((s, a) => s + (a.score / a.total_questions) * 100, 0) / weekAttempts.length)
+        : 0,
+    });
+  }
+
+  return weeks;
+}
+
+function buildHardestTopics(validAttempts: any[], topics: any[]) {
+  const topicMap: Record<string, { name: string; subjectName: string; total: number; correct: number }> = {};
+
+  for (const a of validAttempts) {
+    if (!a.topic_id) continue;
+    const topic = topics.find((t) => t.id === a.topic_id);
+    if (!topic) continue;
+    if (!topicMap[a.topic_id]) {
+      topicMap[a.topic_id] = {
+        name: topic.name,
+        subjectName: (topic.subjects as { name?: string } | null)?.name ?? "—",
+        total: 0,
+        correct: 0,
+      };
+    }
+    topicMap[a.topic_id].total += a.total_questions;
+    topicMap[a.topic_id].correct += a.score;
+  }
+
+  return Object.entries(topicMap)
+    .map(([id, v]) => ({ id, ...v, avgPercent: Math.round((v.correct / v.total) * 100) }))
+    .sort((a, b) => a.avgPercent - b.avgPercent)
+    .slice(0, 7);
+}
 
 app.get("/api/admin/analytics", requireAuth, requireRole(["admin"]), async (_req: Request, res: Response) => {
   try {
@@ -1073,51 +1070,7 @@ app.get("/api/admin/analytics", requireAuth, requireRole(["admin"]), async (_req
     ]);
 
     const validAttempts = (attempts || []).filter((a: any) => a.total_questions > 0);
-    const avgScore = validAttempts.length
-      ? validAttempts.reduce((s: number, a: any) => s + a.score, 0) / validAttempts.length
-      : 0;
-    const avgPercent = validAttempts.length
-      ? validAttempts.reduce((s: number, a: any) => s + (a.score / a.total_questions) * 100, 0) / validAttempts.length
-      : 0;
-
-    const now = new Date();
-    const weeks: { label: string; count: number; avgPercent: number }[] = [];
-    for (let i = 7; i >= 0; i--) {
-      const from = new Date(now);
-      from.setDate(from.getDate() - i * 7 - 6);
-      const to = new Date(now);
-      to.setDate(to.getDate() - i * 7);
-      const label = `${from.getDate()}.${String(from.getMonth() + 1).padStart(2, "0")}`;
-      const weekAttempts = validAttempts.filter((a: any) => {
-        const d = new Date(a.created_at);
-        return d >= from && d <= to;
-      });
-      weeks.push({
-        label,
-        count: weekAttempts.length,
-        avgPercent: weekAttempts.length
-          ? Math.round(weekAttempts.reduce((s: number, a: any) => s + (a.score / a.total_questions) * 100, 0) / weekAttempts.length)
-          : 0,
-      });
-    }
-
-    const topicMap: Record<string, { name: string; subjectName: string; total: number; correct: number }> = {};
-    for (const a of validAttempts) {
-      if (!a.topic_id) continue;
-      const topic = (topics || []).find((t: any) => t.id === a.topic_id);
-      if (!topic) continue;
-      if (!topicMap[a.topic_id]) topicMap[a.topic_id] = {
-        name: topic.name,
-        subjectName: (topic.subjects as any)?.name ?? "—",
-        total: 0, correct: 0,
-      };
-      topicMap[a.topic_id].total += a.total_questions;
-      topicMap[a.topic_id].correct += a.score;
-    }
-    const hardestTopics = Object.entries(topicMap)
-      .map(([id, v]) => ({ id, ...v, avgPercent: Math.round((v.correct / v.total) * 100) }))
-      .sort((a, b) => a.avgPercent - b.avgPercent)
-      .slice(0, 7);
+    const { avgScore, avgPercent } = calcAverages(validAttempts);
 
     return res.json({
       totalStudents: totalStudents ?? 0,
@@ -1126,8 +1079,8 @@ app.get("/api/admin/analytics", requireAuth, requireRole(["admin"]), async (_req
       avgScore: Math.round(avgScore * 10) / 10,
       avgPercent: Math.round(avgPercent),
       totalAttempts: validAttempts.length,
-      weeklyDynamics: weeks,
-      hardestTopics,
+      weeklyDynamics: buildWeeklyDynamics(validAttempts),
+      hardestTopics: buildHardestTopics(validAttempts, topics || []),
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -1178,41 +1131,41 @@ app.get("/api/review/pending", requireAuth, requireRole(["teacher", "admin"]), a
 });
 
 app.get("/api/student/errors/counts", requireAuth, async (req: Request, res: Response) => {
-    const userId = (req as any).userId;
-    try {
-        const { data, error } = await supabaseAdmin
-            .from('user_errors')
-            .select('topic_id')
-            .eq('user_id', userId);
-        if (error) throw error;
+  const userId = (req as any).userId;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_errors')
+      .select('topic_id')
+      .eq('user_id', userId);
+    if (error) throw error;
 
-        const counts: Record<string, number> = {};
-        (data || []).forEach((row: any) => {
-            counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
-        });
+    const counts: Record<string, number> = {};
+    (data || []).forEach((row: any) => {
+      counts[row.topic_id] = (counts[row.topic_id] || 0) + 1;
+    });
 
-        return res.json({ counts });
-    } catch (err: any) {
-        return res.status(500).json({ error: err.message });
-    }
+    return res.json({ counts });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/api/student/topics/:topicId/error-questions", requireAuth, async (req: Request, res: Response) => {
-    const userId = (req as any).userId;
-    const topicId = getParam(req, 'topicId');
-    try {
-        const { data, error } = await supabaseAdmin
-            .from('user_errors')
-            .select('question_id, questions(*)')
-            .eq('user_id', userId)
-            .eq('topic_id', topicId);
-        if (error) throw error;
+  const userId = (req as any).userId;
+  const topicId = getParam(req, 'topicId');
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_errors')
+      .select('question_id, questions(*)')
+      .eq('user_id', userId)
+      .eq('topic_id', topicId);
+    if (error) throw error;
 
-        const questions = (data || []).map((item: any) => item.questions).filter(Boolean);
-        return res.json({ questions });
-    } catch (err: any) {
-        return res.status(500).json({ error: err.message });
-    }
+    const questions = (data || []).map((item: any) => item.questions).filter(Boolean);
+    return res.json({ questions });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.patch("/api/review/:answerId", requireAuth, requireRole(["teacher", "admin"]), async (req: Request, res: Response) => {
