@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { apiClient } from "../services/apiClient";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { apiClient } from "../../services/apiClient";
+import LoadingSpinner from "../LoadingSpinner";
 
 interface WeekPoint { label: string; count: number; avgPercent: number }
 interface HardTopic { id: string; name: string; subjectName: string; attempts: number; avgPercent: number }
@@ -34,8 +34,8 @@ function MiniBarChart({ data }: { data: WeekPoint[] }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "80px" }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", height: "100%" }}>
+        {data.map((d) => (
+          <div key={d.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", height: "100%" }}>
             <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
               <div
                 title={`${d.count} спроб, ${d.avgPercent}% середній`}
@@ -54,8 +54,8 @@ function MiniBarChart({ data }: { data: WeekPoint[] }) {
         ))}
       </div>
       <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.65rem", color: "var(--td-text-muted)", overflow: "hidden" }}>
+        {data.map((d) => (
+          <div key={d.label} style={{ flex: 1, textAlign: "center", fontSize: "0.65rem", color: "var(--td-text-muted)", overflow: "hidden" }}>
             {d.label}
           </div>
         ))}
@@ -139,8 +139,8 @@ export default function AdminAnalyticsTab() {
           </div>
           <MiniBarChart data={data.weeklyDynamics} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "12px" }}>
-            {data.weeklyDynamics.map((w, i) => w.count > 0 && (
-              <div key={i} style={{ fontSize: "0.7rem", color: "var(--td-text-muted)", textAlign: "center", flex: 1 }}>
+            {data.weeklyDynamics.map((w) => w.count > 0 && (
+              <div key={w.label} style={{ fontSize: "0.7rem", color: "var(--td-text-muted)", textAlign: "center", flex: 1 }}>
                 {w.avgPercent > 0 && <span style={{ color: difficultyColor(w.avgPercent) }}>{w.avgPercent}%</span>}
               </div>
             ))}

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import AdminLogsTab from '../components/AdminLogsTab';
-import AdminUsersTab from "../components/AdminUsersTab";
-import AdminRolesTab from "../components/AdminRolesTab";
-import AdminAnalyticsTab from "../components/AdminAnalyticsTab";
-import AdminModerationTab from "../components/AdminModerationTab";
+import AdminLogsTab from '../components/admin/AdminLogsTab';
+import AdminUsersTab from "../components/admin/AdminUsersTab";
+import AdminRolesTab from "../components/admin/AdminRolesTab";
+import AdminAnalyticsTab from "../components/admin/AdminAnalyticsTab";
+import AdminModerationTab from "../components/admin/AdminModerationTab";
 import "./TeacherDashboard.scss";
 
 type AdminTab = "users" | "logs" | "analytics" | "moderation" | "roles";
@@ -28,7 +28,7 @@ export default function AdminPanel() {
 
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px", marginTop: "30px" }}>
           {menuItems.map(item => (
-            <div
+            <button
               key={item.id}
               className="td-q-card"
               onClick={() => setActiveTab(item.id)}
@@ -43,7 +43,7 @@ export default function AdminPanel() {
             >
               <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>{item.icon}</div>
               <h3 style={{ margin: "0 0 8px 0", fontSize: "1.1rem", fontWeight: 600 }}>{item.title}</h3>
-            </div>
+            </button>
           ))}
         </div>
 

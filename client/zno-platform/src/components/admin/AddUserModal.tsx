@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useState } from "react";
-import { apiClient } from "../services/apiClient";
+import { apiClient } from "../../services/apiClient";
 
 interface AddUserModalProps {
   onClose: () => void;
@@ -81,7 +81,7 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         {field("Username", "username")}
         {field("Email", "email", "email")}
         <div style={{ marginBottom: "14px" }}>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "var(--td-text-muted)", marginBottom: "6px" }}>
+          <label htmlFor="password-input" style={{ display: "block", fontSize: "0.85rem", color: "var(--td-text-muted)", marginBottom: "6px" }}>
             Пароль
           </label>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -126,7 +126,7 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "var(--td-text-muted)", marginBottom: "6px" }}>
+          <label htmlFor="role-select" style={{ display: "block", fontSize: "0.85rem", color: "var(--td-text-muted)", marginBottom: "6px" }}>
             Роль
           </label>
           <select

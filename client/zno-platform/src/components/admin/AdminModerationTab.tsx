@@ -1,7 +1,7 @@
 import { useState } from "react";
-import QuestionsTab from "./moderation/QuestionsTab";
-import SubjectsTab from "./moderation/SubjectsTab";
-import TopicsTab from "./moderation/TopicsTab";
+import QuestionsTab from "../moderation/QuestionsTab";
+import SubjectsTab from "../moderation/SubjectsTab";
+import TopicsTab from "../moderation/TopicsTab";
 
 type ModerationTab = "questions" | "topics" | "subjects";
 

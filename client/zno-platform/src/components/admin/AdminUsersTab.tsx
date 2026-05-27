@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { apiClient } from "../services/apiClient";
+import { apiClient } from "../../services/apiClient";
 import { BanConfirmModal } from "./BanConfirmModal";
 import { AddUserModal } from "./AddUserModal";
 import './AdminUsersTab.scss';
@@ -121,6 +121,15 @@ function AdminUsersTab() {
     transition: "all 0.2s",
   };
 
+  const roleLabel: Record<string, string> = {
+    all: "Всі", student: "Студенти", teacher: "Викладачі", admin: "Адміни",
+  };
+
+  const getBanLabel = (isProcessing: boolean, isBanned: boolean) => {
+    if (isProcessing) return "...";
+    return isBanned ? "🔓 Розблокувати" : "🚫 Заблокувати";
+  };
+
   return (
     <div className="td-form">
       <h2>👥 Управління користувачами</h2>
@@ -150,7 +159,7 @@ function AdminUsersTab() {
                 color: roleFilter === r ? "#0f1117" : "var(--td-text)",
               }}
             >
-              {r === "all" ? "Всі" : r === "student" ? "Студенти" : r === "teacher" ? "Викладачі" : "Адміни"}
+              {roleLabel[r]}
               <span style={{ marginLeft: "6px", fontSize: "0.8rem", opacity: 0.7 }}>
                 ({r === "all" ? users.length : users.filter(u => u.role === r).length})
               </span>
@@ -237,7 +246,7 @@ function AdminUsersTab() {
                                 transition: "all 0.2s",
                               }}
                             >
-                              {processingId === u.id ? "..." : u.is_banned ? "🔓 Розблокувати" : "🚫 Заблокувати"}
+                              {getBanLabel(processingId === u.id, u.is_banned)}
                             </button>
                             <button
                               disabled={processingId === u.id}
@@ -318,9 +327,9 @@ function AdminUsersTab() {
                       <button
                         disabled={processingId === u.id}
                         onClick={() => handleBanToggle(u)}
-                        style={actionBtnStyle(u.is_banned ? false : true)}
+                        style={actionBtnStyle(!u.is_banned)}
                       >
-                        {processingId === u.id ? "..." : u.is_banned ? "🔓 Розблокувати" : "🚫 Заблокувати"}
+                        {getBanLabel(processingId === u.id, u.is_banned)}
                       </button>
                       <button
                         disabled={processingId === u.id}
