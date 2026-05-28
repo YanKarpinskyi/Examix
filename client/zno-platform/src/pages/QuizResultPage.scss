@@ -1,5 +1,5 @@
-@use "../styles/variables";
 @use "../styles/mixins";
+@import "../styles/variables";
 
 .result-page {
   --res-bg:             #f8fafc;
@@ -35,7 +35,7 @@
   min-height: 100vh;
   background: var(--res-bg);
   color: var(--res-text);
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: $font-serif;
   display: flex;
   justify-content: center;
   align-items: flex-start;

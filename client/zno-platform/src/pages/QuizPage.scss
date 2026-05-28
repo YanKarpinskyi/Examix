@@ -1,5 +1,5 @@
-@use "../styles/variables";
 @use "../styles/mixins";
+@import "../styles/variables";
 
 .quiz-container {
     --quiz-bg:           rgb(246, 246, 246);
@@ -34,7 +34,7 @@
     overflow: visible;   
     background: var(--quiz-bg);
     color: var(--quiz-text);
-    font-family: 'Georgia', 'Times New Roman', serif;
+    font-family: $font-serif;
     display: grid;
     grid-template-rows: auto 1fr auto;
     grid-template-areas:

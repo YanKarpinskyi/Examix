@@ -1,5 +1,5 @@
-@use "../styles/variables";
 @use "../styles/mixins";
+@import "../styles/variables";
 
 .options-list, .matching-question, .short-answer, .open-answer, .sequence-answer, .error-placeholder, .text-answer {
     --q-h3-color:       #000000;
@@ -41,7 +41,7 @@
     gap: 16px;
 
     h3 {
-        font-family: 'Georgia', 'Times New Roman', serif;
+        font-family: $font-serif;
         font-size: 1.05rem;
         font-weight: normal;
         line-height: 1.65;
