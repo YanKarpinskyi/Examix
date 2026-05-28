@@ -639,7 +639,7 @@ app.patch("/api/admin/users/:id/role", requireAuth, requireRole(["admin"]), asyn
 
 app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), withLogging("ban_user"), async (req: Request, res: Response) => {
   const id = getParam(req, 'id');
-  const { banned } = req.body; 
+  const { banned } = req.body;
 
   const { error: profileError } = await supabaseAdmin
     .from("profiles")
@@ -653,7 +653,9 @@ app.patch("/api/admin/users/:id/ban", requireAuth, requireRole(["admin"]), withL
     ban_duration: banDuration,
   });
 
-  if (authError) return res.status(500).json({ error: authError.message });
+  if (authError) {
+    console.warn(`⚠️ Auth ban не вдався для userId ${id}:`, authError.message);
+  }
 
   return res.json({ success: true, banned });
 });
