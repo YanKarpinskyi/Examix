@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { Ban, LockOpen } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -24,42 +25,25 @@ export function BanConfirmModal({ user, action, onConfirm, onCancel }: BanConfir
         maxWidth: "420px", width: "90%",
         border: action === "ban" ? "1px solid #ef4444" : "1px solid #34d399",
       }}>
-        <div style={{ fontSize: "2.5rem", textAlign: "center", marginBottom: "12px" }}>
-          {action === "ban" ? "🚫" : "🔓"}
+        <div style={{ textAlign: "center", marginBottom: "12px", color: action === "ban" ? "#f87171" : "#34d399" }}>
+          {action === "ban" ? <Ban size={40} /> : <LockOpen size={40} />}
         </div>
-        <h3 style={{ textAlign: "center", marginBottom: "12px" }}>
+        <h3 style={{ textAlign: "center", marginBottom: "12px", color: '#ababab'}}>
           {action === "ban" ? "Заблокувати користувача?" : "Розблокувати користувача?"}
         </h3>
-        <div style={{
-          background: "var(--td-surface-2)", borderRadius: "8px", padding: "12px 16px",
-          marginBottom: "16px", textAlign: "center",
-        }}>
-          <div style={{ fontWeight: "600" }}>{user.username || "—"}</div>
+        <div style={{ background: "var(--td-surface-2)", borderRadius: "8px", padding: "12px 16px", marginBottom: "16px", textAlign: "center" }}>
+          <div style={{ fontWeight: "600", color: '#e4e4e4' }}>{user.username || "—"}</div>
           <div style={{ fontSize: "0.85rem", color: "var(--td-text-muted)" }}>{user.email}</div>
         </div>
         <p style={{ color: "var(--td-text-muted)", fontSize: "0.9rem", textAlign: "center", marginBottom: "20px" }}>
           {action === "ban"
-            ? <>Користувач <strong>негайно втратить доступ</strong> до платформи. При наступній спробі входу він побачить повідомлення про блокування.</>
+            ? <><strong>Негайно втратить доступ</strong> до платформи.</>
             : "Користувач знову зможе увійти до платформи."
           }
         </p>
         <div style={{ display: "flex", gap: "12px" }}>
-          <button
-            className="td-btn-new cancel"
-            style={{ flex: 1 }}
-            onClick={onCancel}
-          >
-            Скасувати
-          </button>
-          <button
-            className="td-btn-new"
-            style={{
-              flex: 1,
-              background: action === "ban" ? "#ef4444" : "#34d399",
-              color: "#0f1117",
-            }}
-            onClick={onConfirm}
-          >
+          <button className="td-btn-new cancel" style={{ flex: 1 }} onClick={onCancel}>Скасувати</button>
+          <button className="td-btn-new" style={{ flex: 1, background: action === "ban" ? "#ef4444" : "#34d399", color: "#0f1117" }} onClick={onConfirm}>
             {action === "ban" ? "Заблокувати" : "Розблокувати"}
           </button>
         </div>

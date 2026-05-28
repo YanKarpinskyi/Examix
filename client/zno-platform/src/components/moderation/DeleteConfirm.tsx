@@ -1,3 +1,5 @@
+import { Trash2 } from "lucide-react";
+
 const btnStyle = (variant: "danger" | "primary" | "ghost" | "accent"): React.CSSProperties => ({
   padding: "5px 12px", borderRadius: "6px", border: "none",
   fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
@@ -24,7 +26,7 @@ function DeleteConfirm({ label, onConfirm, onCancel }: { label: string; onConfir
         background: "var(--td-surface)", borderRadius: "12px", padding: "28px 32px",
         maxWidth: "380px", width: "90%", border: "1px solid #ef4444", textAlign: "center",
       }}>
-        <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🗑️</div>
+        <div style={{ marginBottom: "10px", color: "#f87171" }}><Trash2 size={36} /></div>
         <h3 style={{ marginBottom: "8px" }}>Видалити?</h3>
         <p style={{ color: "var(--td-text-muted)", fontSize: "0.88rem", marginBottom: "20px" }}>
           «{label}» — цю дію <strong>неможливо скасувати</strong>.

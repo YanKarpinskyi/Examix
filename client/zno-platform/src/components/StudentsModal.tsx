@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { Users, GraduationCap } from "lucide-react";
 import "./StudentsModal.scss";
 
 interface Student {
@@ -29,9 +30,11 @@ export default function StudentsModal({
       <div className="sm-content" onClick={(e) => e.stopPropagation()}>
         <div className="sm-header">
           <div className="sm-title">
-            <span className="sm-icon">👥</span>
-            <div>
-              <h2>Список студентів</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Users size={22} className="sm-icon"/>
+                <h2>Список студентів</h2>
+              </div>
               <p className="sm-subtitle">{groupName}</p>
             </div>
           </div>
@@ -48,7 +51,7 @@ export default function StudentsModal({
             </div>
           ) : students.length === 0 ? (
             <div className="sm-empty">
-              <span className="sm-empty-icon">🎓</span>
+              <GraduationCap size={40} className="sm-empty-icon" />
               <p>В групі поки немає студентів.</p>
             </div>
           ) : (

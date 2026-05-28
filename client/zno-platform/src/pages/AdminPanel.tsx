@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { Users, ClipboardList, BarChart2, Pencil, ShieldCheck, Shield } from "lucide-react";
 import AdminLogsTab from '../components/admin/AdminLogsTab';
 import AdminUsersTab from "../components/admin/AdminUsersTab";
 import AdminRolesTab from "../components/admin/AdminRolesTab";
@@ -14,18 +15,21 @@ export default function AdminPanel() {
   const { isDark } = useTheme();
 
   const menuItems = [
-    { id: "users" as const, icon: "👥", title: "Користувачі" },
-    { id: "logs" as const, icon: "📋", title: "Активність" },
-    { id: "analytics" as const, icon: "📊", title: "Аналітика" },
-    { id: "moderation" as const, icon: "✏️", title: "Модерація" },
-    { id: "roles" as const, icon: "🔐", title: "Ролі та права" },
+    { id: "users" as const,      icon: <Users size={34} />,        title: "Користувачі" },
+    { id: "logs" as const,       icon: <ClipboardList size={34} />, title: "Активність" },
+    { id: "analytics" as const,  icon: <BarChart2 size={34} />,    title: "Аналітика" },
+    { id: "moderation" as const, icon: <Pencil size={34} />,       title: "Модерація" },
+    { id: "roles" as const,      icon: <ShieldCheck size={34} />,  title: "Ролі та права" },
   ];
 
   return (
     <div className={`teacher-dashboard${isDark ? "" : " light"}`}>
       <div className="td-inner">
         <div className="td-header">
-          <h1>🛡️ Адмін-панель</h1>
+          <h1 style={{ display: "flex", alignItems: "center", gap: "10px", color: isDark ? "#dbdbdb" : undefined  }}>
+            <Shield size={26} />
+            Адмін-панель
+          </h1>
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px", marginTop: "30px" }}>
@@ -43,8 +47,17 @@ export default function AdminPanel() {
                 minHeight: "160px", width: "200px", flexShrink: 0, justifyContent: "center", flexGrow: 1,
               }}
             >
-              <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>{item.icon}</div>
-              <h3 style={{ margin: "0 0 8px 0", fontSize: "1.1rem", fontWeight: 600, color: isDark ? "var(--td-text)" : "#17365f" }}>{item.title}</h3>
+              <div style={{ marginBottom: "12px", lineHeight: 1, color: "var(--td-accent)" }}>
+                {item.icon}
+              </div>
+              <h3 style={{
+                margin: "0 0 8px 0",
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                color: isDark ? "var(--td-text)" : "#17365f",
+              }}>
+                {item.title}
+              </h3>
             </button>
           ))}
         </div>

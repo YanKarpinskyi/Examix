@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiClient } from "../../services/apiClient";
 import OptionsEditor from "./OptionsEditor";
+import { Save, AlertTriangle, Plus } from "lucide-react";
 
 interface Subject { id: string; name: string; description?: string }
 interface Topic { id: string; name: string; description?: string; subject_id: string; subjects?: { name: string } }
@@ -128,7 +129,9 @@ function AddQuestionForm({ topics, subjects, onSave, onCancel }: {
       ...cardStyle, flexDirection: "column", marginBottom: "16px",
       border: "1px solid #34d399", gap: "14px",
     }}>
-      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#34d399" }}>➕ Нове питання</div>
+      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
+        <Plus size={16} /> Нове питання
+      </div>
 
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <div style={{ flex: 2, minWidth: "160px" }}>
@@ -181,14 +184,15 @@ function AddQuestionForm({ topics, subjects, onSave, onCancel }: {
           padding: "8px 12px", borderRadius: "6px",
           background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: "0.83rem",
         }}>
-          ⚠️ {error}
+          <AlertTriangle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+          {error}
         </div>
       )}
 
       <div style={{ display: "flex", gap: "8px" }}>
-        <button style={{ ...btnStyle("primary"), opacity: saving ? 0.6 : 1 }}
+        <button style={{ ...btnStyle("primary"), display: "flex", alignItems: "center", gap: "5px" }}
           onClick={handleSave} disabled={saving}>
-          {saving ? "Збереження..." : "💾 Зберегти питання"}
+          {saving ? "Збереження..." : <><Save size={13} /> Зберегти питання</>}
         </button>
         <button style={btnStyle("ghost")} onClick={onCancel} disabled={saving}>Скасувати</button>
       </div>

@@ -6,6 +6,7 @@ import { apiClient } from "../services/apiClient";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from '../components/ConfirmModal';
 import { useTheme } from "../context/ThemeContext";
+import { BookOpen, Users, CalendarDays, BarChart2, GraduationCap, Target, FileText, TrendingUp, RefreshCw, Pencil, Trash2, Check, Pin, AlertTriangle, Send } from "lucide-react";
 import "./TeacherDashboard.scss";
 
 interface OptionField {
@@ -91,6 +92,12 @@ const createEmptyOption = (isCorrect = false): OptionField => ({
 
 export default function TeacherDashboard() {
   const { isDark } = useTheme();
+
+  const h2Style: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: "8px",
+    justifyContent: "center", color: isDark ? "#dbdbdb" : undefined,
+  };
+
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MainTab>("questions");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -574,7 +581,9 @@ export default function TeacherDashboard() {
       <div className={`teacher-dashboard${isDark ? "" : " light"}`}>
         <div className="td-inner">
           <div className="td-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "15px" }}>
-            <h1>👨‍🏫 Панель викладача Examix</h1>
+            <h1 style={{ display: "flex", alignItems: "center", gap: "10px", color: isDark ? "#dbdbdb" : undefined }}>
+              <GraduationCap size={26} /> Панель викладача Examix
+            </h1>
             <div style={{
               display: "flex",
               flexWrap: "wrap",
@@ -584,33 +593,22 @@ export default function TeacherDashboard() {
               width: "100%",
             }}>
               {([
-                { id: "questions" as const, icon: "📚", title: "Керування питаннями"},
-                { id: "groups" as const, icon: "👥", title: "Навчальні групи"},
-                { id: "assignments" as const, icon: "📅", title: "Призначення тестів"},
-                { id: "analytics" as const, icon: "📊", title: "Статистика студентів"},
+                { id: "questions" as const, icon: <BookOpen size={34} />,     title: "Керування питаннями" },
+                { id: "groups" as const,    icon: <Users size={34} />,        title: "Навчальні групи" },
+                { id: "assignments" as const, icon: <CalendarDays size={34} />, title: "Призначення тестів" },
+                { id: "analytics" as const, icon: <BarChart2 size={34} />,   title: "Статистика студентів" },
               ] as const).map((item) => (
-                <div
-                  key={item.id}
-                  className="td-q-card"
-                  onClick={() => setActiveTab(item.id)}
+                <div key={item.id} className="td-q-card" onClick={() => setActiveTab(item.id)}
                   style={{
                     cursor: "pointer",
                     border: activeTab === item.id ? "2px solid var(--td-accent)" : "1px solid var(--td-surface-2)",
                     background: activeTab === item.id ? "rgba(110, 207, 160, 0.1)" : "var(--td-surface)",
-                    padding: "20px 18px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    textAlign: "center",
-                    transition: "all 0.2s ease",
-                    minHeight: "150px",
-                    width: "200px",
-                    flexShrink: 0,
-                    flexGrow: 1,
-                    justifyContent: "center"
+                    padding: "20px 18px", display: "flex", flexDirection: "column",
+                    alignItems: "center", textAlign: "center", transition: "all 0.2s ease",
+                    minHeight: "150px", width: "200px", flexShrink: 0, flexGrow: 1, justifyContent: "center",
                   }}
                 >
-                  <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>
+                  <div style={{ marginBottom: "12px", lineHeight: 1, color: "var(--td-accent)" }}>
                     {item.icon}
                   </div>
                   <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", fontWeight: 600 }}>
@@ -961,7 +959,7 @@ export default function TeacherDashboard() {
                                 onClick={() => startEditing(q)}
                                 title="Редагувати"
                               >
-                                ✏️
+                                <Pencil size={15} />
                               </button>
                               <button
                                 disabled={deletingId === q.id}
@@ -983,7 +981,9 @@ export default function TeacherDashboard() {
 
             {activeTab === "groups" && (
               <div className="td-form">
-                <h2>👥 Навчальні групи</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: 'center', color: isDark ? "#dbdbdb" : undefined }}>
+                  <Users size={22} /> Навчальні групи
+                </h2>
                 <p style={{ color: "var(--td-text-muted)", marginBottom: "20px" }}>
                   Перегляд та управління навчальними групами по факультетах
                 </p>
@@ -1111,7 +1111,7 @@ export default function TeacherDashboard() {
 
             {activeTab === "assignments" && (
               <div className="td-form">
-                <h2>Призначити нове тестування для групи</h2>
+                <h2 style={h2Style}>Призначити нове тестування для групи</h2>
                 <form onSubmit={handleAssignTest} style={{ display: "flex", flexDirection: "column", gap: "15px", marginTop: "15px" }}>
                   <div className="td-field">
                     <label>1. Оберіть навчальну групу:</label>
@@ -1203,8 +1203,9 @@ export default function TeacherDashboard() {
                     />
                   </div>
 
-                  <button type="submit" className="td-btn-submit" style={{ alignSelf: "flex-start", marginTop: "10px" }}>
-                    🚀 Надіслати призначення групі
+                  <button type="submit" className="td-btn-submit" style={{ justifyContent: "center", alignSelf: "flex-start", marginTop: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Send size={16} />
+                    Надіслати призначення групі
                   </button>
                 </form>
 
@@ -1252,11 +1253,12 @@ export default function TeacherDashboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "6px",
-                      backgroundColor: assignmentsLoading ? "#374151" : "var(--td-accent)", 
+                      backgroundColor: assignmentsLoading ? "#374151" : "var(--td-accent)",
                       cursor: assignmentsLoading ? "not-allowed" : "pointer"
                     }}
                   >
-                    🔄 Оновити список
+                    <RefreshCw size={15} />
+                    Оновити список
                   </button>
                 </div>
 
@@ -1280,28 +1282,31 @@ export default function TeacherDashboard() {
                           display: "flex", flexDirection: "column", gap: "10px"
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" }}>
-                            <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <Users size={16} style={{ color: "var(--td-accent)" }} />
                               <span style={{ fontSize: "1rem", fontWeight: "bold", color: "var(--td-accent)" }}>
-                                👥 {a.group?.name ?? "—"}
+                                {a.group?.name ?? "—"}
                               </span>
-                              <span style={{ margin: "0 8px", color: "var(--td-text-muted)" }}>→</span>
-                              <span style={{ fontSize: "0.95rem", color: "var(--td-text)" }}>
+                              <span style={{ margin: "0 4px", color: "var(--td-text-muted)" }}>→</span>
+                              <span style={{ fontSize: "0.95rem", color: "var(--td-text)", display: "flex", alignItems: "center", gap: "5px" }}>
                                 {a.topic
-                                  ? <>📌 <strong>{a.topic.name}</strong> <span style={{ color: "var(--td-text-muted)", fontSize: "0.85rem" }}>(тема)</span></>
-                                  : <>📚 <strong>{a.subject?.name ?? "Весь предмет"}</strong> <span style={{ color: "var(--td-text-muted)", fontSize: "0.85rem" }}>(предмет)</span></>
+                                  ? <><Pin size={14} style={{ color: "var(--td-accent)" }} /><strong>{a.topic.name}</strong> <span style={{ color: "var(--td-text-muted)", fontSize: "0.85rem" }}>(тема)</span></>
+                                  : <><BookOpen size={14} style={{ color: "var(--td-accent)" }} /><strong>{a.subject?.name ?? "Весь предмет"}</strong> <span style={{ color: "var(--td-text-muted)", fontSize: "0.85rem" }}>(предмет)</span></>
                                 }
                               </span>
                             </div>
                             <button
                               onClick={() => handleDeleteAssignment(a.id, a.group?.name ?? "—")}
-                              style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+                              style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontSize: "0.8rem", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              🗑 Скасувати тест
+                              <Trash2 size={13} /> Скасувати тест
                             </button>
                           </div>
 
                           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)" }}>⏰ Дедлайн:</span>
+                            <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <CalendarDays size={14} /> Дедлайн:
+                            </span>
                             {isEditingThis ? (
                               <>
                                 <input
@@ -1328,14 +1333,22 @@ export default function TeacherDashboard() {
                                     background: overdue ? "#450a0a" : "#064e3b",
                                     padding: "2px 8px", borderRadius: "4px"
                                   }}>
-                                    {formatDateTime(a.due_date)}{overdue && " ⚠️ Прострочено"}
+                                    {formatDateTime(a.due_date)}
+                                      {overdue && (
+                                        <>
+                                          {" "}
+                                          <AlertTriangle size={14} style={{ display: "inline", verticalAlign: "middle", color: "#f87171" }} />
+                                        </>
+                                      )}
                                   </span>
                                 ) : (
                                   <span style={{ fontSize: "0.85rem", color: "var(--td-text-muted)", fontStyle: "italic" }}>Без дедлайну</span>
                                 )}
-                                <button onClick={() => startEditDueDate(a)}
-                                  style={{ background: "var(--td-surface-2)", color: "var(--td-accent)", border: "none", borderRadius: "6px", padding: "3px 8px", cursor: "pointer", fontSize: "0.78rem" }}>
-                                  ✏️ Змінити
+                                <button
+                                  onClick={() => startEditDueDate(a)}
+                                  style={{ background: "var(--td-surface-2)", color: "var(--td-accent)", border: "none", borderRadius: "6px", padding: "3px 8px", cursor: "pointer", fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                >
+                                  <Pencil size={12} /> Змінити
                                 </button>
                                 {a.due_date && (
                                   <button onClick={() => handleClearDueDate(a.id)}
@@ -1360,7 +1373,7 @@ export default function TeacherDashboard() {
 
             {activeTab === "analytics" && (
               <div className="td-form">
-                <h2>📊 Статистика успішності</h2>
+                <h2 style={h2Style}>📊 Статистика успішності</h2>
 
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", margin: "15px 0" }}>
                   {filteredGroups.map((g) => (
@@ -1403,10 +1416,10 @@ export default function TeacherDashboard() {
                         </h3>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "14px" }}>
                           {[
-                            { label: "Студентів у групі", value: students?.length ?? 0, icon: "👥" },
-                            { label: "Активних студентів", value: uniqueStudentsActive, icon: "🎯" },
-                            { label: "Всього спроб", value: totalAttempts, icon: "📝" },
-                            { label: "Середній результат", value: `${avgPercent}%`, icon: "📈", color: avgPercent >= 70 ? "#34d399" : avgPercent >= 50 ? "#fbbf24" : "#f87171" },
+                            { label: "Студентів у групі",   value: students?.length ?? 0, icon: <Users size={28} /> },
+                            { label: "Активних студентів",  value: uniqueStudentsActive,  icon: <Target size={28} /> },
+                            { label: "Всього спроб",        value: totalAttempts,          icon: <FileText size={28} /> },
+                            { label: "Середній результат",  value: `${avgPercent}%`,       icon: <TrendingUp size={28} />, color: avgPercent >= 70 ? "#34d399" : avgPercent >= 50 ? "#fbbf24" : "#f87171" },
                           ].map((stat) => (
                             <div key={stat.label} style={{
                               background: "var(--td-surface)",

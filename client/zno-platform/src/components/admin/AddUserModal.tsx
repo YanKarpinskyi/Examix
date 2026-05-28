@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState } from "react";
 import { apiClient } from "../../services/apiClient";
+import { Eye, EyeOff, Copy, Check, UserPlus } from "lucide-react";
 
 interface AddUserModalProps {
   onClose: () => void;
@@ -9,14 +10,11 @@ interface AddUserModalProps {
 
 export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
   const [form, setForm] = useState({
-    email: "",
-    password: "",
-    username: "",
+    email: "", password: "", username: "",
     role: "student" as "student" | "teacher" | "admin",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -28,10 +26,7 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
     setLoading(true);
     setError(null);
     try {
-      await apiClient.request("/admin/users", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
+      await apiClient.request("/admin/users", { method: "POST", body: JSON.stringify(form) });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -47,8 +42,7 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         {label}
       </label>
       <input
-        type={type}
-        autoComplete="off"
+        type={type} autoComplete="off"
         value={form[key] as string}
         onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
         style={{
@@ -76,7 +70,9 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         background: "var(--td-surface)", borderRadius: "12px", padding: "32px",
         maxWidth: "440px", width: "90%", border: "1px solid var(--td-surface-2)",
       }}>
-        <h3 style={{ margin: "0 0 20px 0", textAlign: "center" }}>➕ Додати користувача</h3>
+        <h3 style={{ margin: "0 0 20px 0", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", color: '#e4e4e4' }}>
+          <UserPlus size={20} /> Додати користувача
+        </h3>
 
         {field("Username", "username")}
         {field("Email", "email", "email")}
@@ -87,8 +83,7 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <input
               type={showPassword ? "text" : "password"}
-              value={form.password}
-              autoComplete="new-password"
+              value={form.password} autoComplete="new-password"
               onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
               style={{
                 flex: 1, padding: "8px 12px",
@@ -96,31 +91,25 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
                 border: "1px solid var(--td-surface-2)", borderRadius: "6px", fontSize: "0.9rem",
               }}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(v => !v)}
+            <button type="button" onClick={() => setShowPassword(v => !v)}
               title={showPassword ? "Сховати" : "Показати"}
               style={{
                 padding: "8px 10px", borderRadius: "6px", border: "none",
                 background: "var(--td-surface-2)", color: "var(--td-text)",
-                cursor: "pointer", fontSize: "1rem", flexShrink: 0,
+                cursor: "pointer", flexShrink: 0,
               }}
             >
-              {showPassword ? "🙈" : "👁️"}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-            <button
-              type="button"
-              onClick={copyPassword}
-              title="Копіювати пароль"
+            <button type="button" onClick={copyPassword} title="Копіювати пароль"
               style={{
                 padding: "8px 10px", borderRadius: "6px", border: "none",
                 background: copied ? "rgba(52,211,153,0.15)" : "var(--td-surface-2)",
                 color: copied ? "#34d399" : "var(--td-text)",
-                cursor: "pointer", fontSize: "1rem", flexShrink: 0,
-                transition: "all 0.2s",
+                cursor: "pointer", flexShrink: 0, transition: "all 0.2s",
               }}
             >
-              {copied ? "✓" : "📋"}
+              {copied ? <Check size={16} /> : <Copy size={16} />}
             </button>
           </div>
         </div>
@@ -130,8 +119,9 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
             Роль
           </label>
           <select
+            id="role-select"
             value={form.role}
-            onChange={e => setForm(prev => ({ ...prev, role: e.target.value as typeof form.role }))}
+            onChange={e => setForm(prev => ({ ...prev, role: e.target.value as any }))}
             style={{
               width: "100%", padding: "8px 12px",
               background: "var(--td-surface-2)", color: "var(--td-text)",
@@ -145,22 +135,16 @@ export function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
         </div>
 
         {error && (
-          <div style={{
-            background: "rgba(239,68,68,0.1)", color: "#f87171", borderRadius: "6px",
-            padding: "10px 14px", marginBottom: "16px", fontSize: "0.88rem",
-          }}>
+          <div style={{ padding: "8px 12px", borderRadius: "6px", background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: "0.83rem", marginBottom: "16px" }}>
             {error}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ display: "flex", gap: "10px" }}>
           <button className="td-btn-new cancel" style={{ flex: 1 }} onClick={onClose} disabled={loading}>
             Скасувати
           </button>
-          <button
-            className="td-btn-new" style={{ flex: 1 }}
-            onClick={handleSubmit} disabled={loading}
-          >
+          <button className="td-btn-new" style={{ flex: 1 }} onClick={handleSubmit} disabled={loading}>
             {loading ? "Створення..." : "Створити"}
           </button>
         </div>

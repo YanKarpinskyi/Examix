@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "../../services/apiClient";
+import { useTheme } from '../../context/ThemeContext';
 
 interface UserProfile {
   id: string;
@@ -18,6 +19,12 @@ const roleBadgeColor: Record<string, string> = {
 };
 
 export default function AdminRolesTab() {
+  const { isDark, toggleTheme } = useTheme();
+  const h2Style: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: "8px",
+    justifyContent: "center", color: isDark ? "#dbdbdb" : undefined,
+  };
+
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -83,7 +90,7 @@ export default function AdminRolesTab() {
 
   return (
     <div className="td-form">
-      <h2>🔐 Ролі та права доступу</h2>
+      <h2 style={h2Style}>🔐 Ролі та права доступу</h2>
 
       <div style={{ marginBottom: "16px" }}>
         <input

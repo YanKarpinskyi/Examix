@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check, X } from "lucide-react";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 12px", boxSizing: "border-box",
@@ -34,8 +35,8 @@ function InlineEditField({ value, onSave, onCancel, multiline = false }: {
       ) : (
         <input value={val} onChange={e => setVal(e.target.value)} autoFocus style={{ ...inputStyle, flex: 1 }} />
       )}
-      <button style={btnStyle("primary")} onClick={() => onSave(val)}>✓</button>
-      <button style={btnStyle("ghost")} onClick={onCancel}>✕</button>
+      <button style={btnStyle("primary")} onClick={() => onSave(val)}><Check size={14} /></button>
+      <button style={btnStyle("ghost")} onClick={onCancel}><X size={14} /></button>
     </div>
   );
 }

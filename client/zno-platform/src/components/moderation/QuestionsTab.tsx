@@ -4,6 +4,7 @@ import LoadingSpinner from "../LoadingSpinner";
 import DeleteConfirm from "./DeleteConfirm";
 import QuestionEditor from "./QuestionEditor";
 import AddQuestionForm from "./AddQuestionForm";
+import { Plus, Pencil, Trash2, Check } from "lucide-react";
 
 interface Subject { id: string; name: string; description?: string }
 interface Topic { id: string; name: string; description?: string; subject_id: string; subjects?: { name: string } }
@@ -150,8 +151,9 @@ function QuestionsTab() {
           <option value="all">Всі типи</option>
           {QUESTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        <button style={btnStyle("primary")} onClick={() => { setAdding(true); setExpanded(null); setEditingId(null); }}>
-          ➕ Додати питання
+        <button style={btnStyle("primary")} onClick={() => setAdding(true)}>
+          <Plus size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+          Додати предмет
         </button>
       </div>
 
@@ -208,8 +210,8 @@ function QuestionsTab() {
                 </div>
                 {!isEditing && (
                   <div style={{ display: "flex", gap: "6px", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    <button style={btnStyle("ghost")} onClick={() => { setEditingId(q.id); setExpanded(q.id); }}>✏️</button>
-                    <button style={btnStyle("danger")} onClick={() => setDeleteTarget(q)}>🗑️</button>
+                    <button style={btnStyle("ghost")} onClick={() => { setEditingId(q.id); setExpanded(q.id); }}><Pencil size={14} /></button>
+                    <button style={btnStyle("danger")} onClick={() => setDeleteTarget(q)}><Trash2 size={14} /></button>
                   </div>
                 )}
               </div>
@@ -234,7 +236,7 @@ function QuestionsTab() {
                           color: isCorrect ? "#34d399" : "var(--td-text)",
                           display: "flex", alignItems: "center", gap: "6px",
                         }}>
-                          {isCorrect && <span>✓</span>}
+                          {isCorrect && <Check size={13} />}
                           {text}
                         </div>
                       );

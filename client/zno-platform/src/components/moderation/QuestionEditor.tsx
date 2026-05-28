@@ -1,5 +1,6 @@
 import { useState } from "react";
 import OptionsEditor from "./OptionsEditor";
+import { Save } from "lucide-react";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 12px", boxSizing: "border-box",
@@ -47,7 +48,10 @@ function QuestionEditor({ question, onSave, onCancel }: {
         style={{ ...inputStyle, resize: "vertical" }} placeholder="Текст питання" />
       <OptionsEditor type={question.type} options={options} onUpdate={setOptions} />
       <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-        <button style={btnStyle("primary")} onClick={() => onSave({ content, options })}>💾 Зберегти</button>
+        <button style={{ ...btnStyle("primary"), display: "flex", alignItems: "center", gap: "6px" }}
+          onClick={() => onSave({ content, options })}>
+          <Save size={14} /> Зберегти
+        </button>
         <button style={btnStyle("ghost")} onClick={onCancel}>Скасувати</button>
       </div>
     </div>

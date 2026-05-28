@@ -3,6 +3,7 @@ import { apiClient } from "../../services/apiClient";
 import LoadingSpinner from "../LoadingSpinner";
 import DeleteConfirm from "./DeleteConfirm";
 import InlineEditField from "./InlineEditField";
+import { Pencil, Trash2, Plus } from "lucide-react";
 
 interface Subject { id: string; name: string; description?: string }
 
@@ -92,7 +93,10 @@ function SubjectsTab() {
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
         <input placeholder="🔍 Пошук предметів..." value={search}
           onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: "180px" }} />
-        <button style={btnStyle("primary")} onClick={() => setAdding(true)}>➕ Додати предмет</button>
+        <button style={btnStyle("primary")} onClick={() => setAdding(true)}>
+          <Plus size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+          Додати предмет
+        </button>
       </div>
       {adding && (
         <div style={{ ...cardStyle, flexDirection: "column", marginBottom: "12px", border: "1px solid #34d399" }}>
@@ -121,8 +125,8 @@ function SubjectsTab() {
             </div>
             {editingId !== s.id && (
               <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                <button style={btnStyle("ghost")} onClick={() => setEditingId(s.id)}>✏️</button>
-                <button style={btnStyle("danger")} onClick={() => setDeleteTarget(s)}>🗑️</button>
+                <button style={btnStyle("ghost")} onClick={() => setEditingId(s.id)}><Pencil size={14} /></button>
+                <button style={btnStyle("danger")} onClick={() => setDeleteTarget(s)}><Trash2 size={14} /></button>
               </div>
             )}
           </div>
