@@ -6,7 +6,7 @@ import { apiClient } from "../services/apiClient";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from '../components/ConfirmModal';
 import { useTheme } from "../context/ThemeContext";
-import { BookOpen, Users, CalendarDays, BarChart2, GraduationCap, Target, FileText, TrendingUp, RefreshCw, Pencil, Trash2, Check, Pin, AlertTriangle, Send } from "lucide-react";
+import { BookOpen, Users, CalendarDays, BarChart2, GraduationCap, Target, FileText, TrendingUp, RefreshCw, Pencil, Trash2, Pin, AlertTriangle, Send } from "lucide-react";
 import "./TeacherDashboard.scss";
 
 interface OptionField {
