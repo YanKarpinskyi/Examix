@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTheme } from "../context/ThemeContext";
 import AdminLogsTab from '../components/admin/AdminLogsTab';
 import AdminUsersTab from "../components/admin/AdminUsersTab";
 import AdminRolesTab from "../components/admin/AdminRolesTab";
@@ -10,6 +11,7 @@ type AdminTab = "users" | "logs" | "analytics" | "moderation" | "roles";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
+  const { isDark } = useTheme();
 
   const menuItems = [
     { id: "users" as const, icon: "👥", title: "Користувачі" },
@@ -20,7 +22,7 @@ export default function AdminPanel() {
   ];
 
   return (
-    <div className="teacher-dashboard">
+    <div className={`teacher-dashboard${isDark ? "" : " light"}`}>
       <div className="td-inner">
         <div className="td-header">
           <h1>🛡️ Адмін-панель</h1>
@@ -42,7 +44,7 @@ export default function AdminPanel() {
               }}
             >
               <div style={{ fontSize: "2.1rem", marginBottom: "12px", lineHeight: 1 }}>{item.icon}</div>
-              <h3 style={{ margin: "0 0 8px 0", fontSize: "1.1rem", fontWeight: 600 }}>{item.title}</h3>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: "1.1rem", fontWeight: 600, color: isDark ? "var(--td-text)" : "#17365f" }}>{item.title}</h3>
             </button>
           ))}
         </div>

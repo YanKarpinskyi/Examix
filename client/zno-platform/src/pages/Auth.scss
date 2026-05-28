@@ -7,6 +7,10 @@
   min-height: 100vh;
   background-color: #f8f9ff;
   padding: 20px;
+
+  &.dark {
+    background-color: #232534;
+  }
 }
 
 .auth-card {
@@ -18,6 +22,54 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   border: 1px solid #eee;
   overflow: visible;
+
+  &.dark {
+    background: #4d558c;
+    border: 1px solid #656565;
+
+    h2 {
+      color: #1b212c;
+    }
+
+    .divider {
+      &::before {
+        background: #5e6ee4;
+      }
+      span {
+        background: #9ba6ff;
+        color: rgb(34, 91, 137);
+        border-radius: 20px;
+      }
+    }
+
+    .input-group {
+      label {
+        color: rgb(55, 159, 147);
+      }
+    }
+
+    .authOptions {
+      .forgot-password {
+        color: rgb(169, 137, 137);
+      }
+    }
+
+    .login-btn {
+      background: #2c8694;
+
+      &:hover:not(:disabled) {
+        background: #1d535b;
+      }
+    }
+
+    .auth-footer {
+      color: rgb(58, 52, 52);
+
+      a {
+        color: rgb(169, 137, 137);
+      }
+    }
+  }
 
   .auth-header {
     display: flex;

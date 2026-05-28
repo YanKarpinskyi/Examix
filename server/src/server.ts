@@ -119,7 +119,11 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
 
 app.post("/api/auth/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email та пароль обов'язкові" });
+  }
+
   const { data: profileData } = await supabaseAdmin
     .from("profiles")
     .select("*")
@@ -132,18 +136,24 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
     });
   }
 
-  const { error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+  const { data: authData, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
   if (error) return res.status(400).json({ error: "Невірний email або пароль" });
 
+  const profile = profileData ?? { 
+    id: authData.user.id, 
+    email: authData.user.email,
+    role: authData.user.user_metadata?.role 
+  };
+
   const token = jwt.sign(
-    { userId: profileData.id, email: profileData.email, role: profileData.role },
+    { userId: profile.id, email: profile.email, role: profile.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  await logAction(profileData.id, "login");
+  await logAction(profile.id, "login");
 
-  return res.json({ token, user: profileData });
+  return res.json({ token, user: profile });
 });
 
 app.post("/api/auth/logout", requireAuth, async (req: Request, res: Response) => {

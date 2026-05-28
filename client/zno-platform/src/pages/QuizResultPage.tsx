@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import { useTheme } from '../context/ThemeContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import "./QuizResultPage.scss";
 
 export default function QuizResultPage() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
+
   const [attemptData, setAttemptData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +56,6 @@ export default function QuizResultPage() {
 
   const renderAnswer = (ans: any, question?: any) => {
     if (ans === undefined || ans === null || ans === "") return "Немає відповіді";
-
     let parsedAns = ans;
     if (typeof ans === 'string') {
       const trimmed = ans.trim();
@@ -62,19 +64,12 @@ export default function QuizResultPage() {
       }
     }
 
-    if (Array.isArray(parsedAns) && question?.type === 'sequence' || question?.type === 'sequense' || question?.type === 'order') {
-      const options: string[] = Array.isArray(question?.options)
-        ? question.options.map((o: any) => typeof o === 'string' ? o : o?.text || String(o))
-        : [];
-
-      const isIndexBased = Array.isArray(parsedAns) && parsedAns.every(
-        (v: any) => !isNaN(Number(v)) && Number(v) < options.length
-      );
-
+    if (Array.isArray(parsedAns) && (question?.type === 'sequence' || question?.type === 'sequense' || question?.type === 'order')) {
+      const options: string[] = Array.isArray(question?.options) ? question.options.map((o: any) => typeof o === 'string' ? o : o?.text || String(o)) : [];
+      const isIndexBased = Array.isArray(parsedAns) && parsedAns.every((v: any) => !isNaN(Number(v)) && Number(v) < options.length);
       if (isIndexBased && options.length > 0) {
         return parsedAns.map((idx: any) => options[Number(idx)]).filter(Boolean).join(' → ');
       }
-
       if (Array.isArray(parsedAns)) return parsedAns.join(' → ');
     }
 
@@ -88,17 +83,16 @@ export default function QuizResultPage() {
         })
         .join(', ');
     }
-
     return String(parsedAns);
   };
 
   return (
-    <div className="result-page">
+    <div className={`result-page ${isDark ? 'dark' : ''}`}>
       <div className="result-card">
         <h1>
           {attemptData.topics?.name ? `Результати: ${attemptData.topics.name}` : 'Результати НМТ симуляції'}
         </h1>
-        
+
         <div className="score-container">
           <div className="score-circle">
             <span className="score-num">{attemptData.score}/{attemptData.total_questions}</span>
@@ -114,16 +108,9 @@ export default function QuizResultPage() {
 
             const checkIsCorrect = () => {
               if (!userAns) return false;
-
               if (q.type === 'sequence' || q.type === 'sequense' || q.type === 'order') {
-                const options: string[] = Array.isArray(q.options)
-                  ? q.options.map((o: any) => typeof o === 'string' ? o : o?.text || String(o))
-                  : [];
-
-                const correctWords = Array.isArray(correctAns)
-                  ? correctAns.map((idx: any) => options[Number(idx)]).filter(Boolean)
-                  : [];
-
+                const options: string[] = Array.isArray(q.options) ? q.options.map((o: any) => typeof o === 'string' ? o : o?.text || String(o)) : [];
+                const correctWords = Array.isArray(correctAns) ? correctAns.map((idx: any) => options[Number(idx)]).filter(Boolean) : [];
                 const userWords = Array.isArray(userAns) ? userAns : [];
                 return JSON.stringify(userWords) === JSON.stringify(correctWords);
               }
@@ -151,11 +138,9 @@ export default function QuizResultPage() {
                 if (data1.length !== data2.length) return false;
                 return data1.every((val, i) => String(val).trim().toLowerCase() === String(data2[i]).trim().toLowerCase());
               }
-
               if (typeof data1 === 'object' && typeof data2 === 'object' && data1 !== null && data2 !== null) {
                 return JSON.stringify(data1) === JSON.stringify(data2);
               }
-
               return String(userAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase();
             };
 

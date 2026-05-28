@@ -18,6 +18,56 @@
   --td-radius-sm:   10px;
 }
 
+.teacher-dashboard.light,
+.td-loading.light {
+  --td-bg:          #f4f1eb;
+  --td-surface:     #ffffff;
+  --td-surface-2:   #ede9e0;
+  --td-border:      rgba(0, 0, 0, 0.08);
+  --td-accent:      #a07840;
+  --td-accent-dim:  rgba(160, 120, 64, 0.10);
+  --td-text:        #1c1a16;
+  --td-text-muted:  #7a7060;
+  --td-success:     #2d8f63;
+  --td-success-dim: rgba(45, 143, 99, 0.10);
+  --td-danger:      #b94040;
+  --td-danger-dim:  rgba(185, 64, 64, 0.10);
+}
+
+.teacher-dashboard.light {
+  &::before {
+    background:
+      radial-gradient(ellipse 55% 35% at 15% 5%,  rgba(160, 120, 64, 0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 50% at 85% 95%, rgba(80, 100, 180, 0.04) 0%, transparent 60%);
+  }
+
+  .td-select option { background: #ede9e0; }
+
+  %td-input-base {
+    &:focus { background: #f8f5ef; }
+  }
+
+  .td-option-row {
+    input[type="checkbox"]:checked {
+      &::after {
+        border-left-color: #fff;
+        border-bottom-color: #fff;
+      }
+    }
+
+    input[type="text"] { color: var(--td-text); }
+  }
+
+  .td-btn-new {
+    color: #fff;
+    &.cancel {
+      color: var(--td-text-muted);
+    }
+  }
+
+  .td-btn-submit { color: #fff; }
+}
+
 .teacher-dashboard {
   min-height: 100vh;
   background: var(--td-bg);
@@ -134,6 +184,10 @@
   flex-direction: column;
   gap: 20px;
   animation: td-fade-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  h2 {
+    color: #2f3a6f;
+  }
 
   &::before {
     content: '';
@@ -287,23 +341,19 @@
   padding: 14px;
   border: none;
   border-radius: var(--td-radius-sm);
-  // background: var(--td-accent);
   background: #8da366;
   color: #0f1117;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s, opacity 0.2s;
 
   &:active:not(:disabled) {
-    // background: #7a8f55; 
     transform: translateY(0);
     box-shadow: 0 2px 10px rgba(141, 163, 102, 0.2);
   }
 
   &:hover:not(:disabled) {
-    // background: #d9b87a;
     background: #a2b87c;
     transform: translateY(-1px);
-    // box-shadow: 0 6px 20px rgba(200, 169, 110, 0.3);
     box-shadow: 0 6px 20px rgba(141, 163, 102, 0.3);
   }
 
@@ -424,6 +474,7 @@
 
   .td-header h1 {
     font-size: 1.6rem;
+    color: #242e5e;
   }
 
   .td-grid {

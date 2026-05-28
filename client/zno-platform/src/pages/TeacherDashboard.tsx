@@ -5,6 +5,7 @@ import AlertModal from '../components/AlertModal';
 import { apiClient } from "../services/apiClient";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from '../components/ConfirmModal';
+import { useTheme } from "../context/ThemeContext";
 import "./TeacherDashboard.scss";
 
 interface OptionField {
@@ -89,6 +90,7 @@ const createEmptyOption = (isCorrect = false): OptionField => ({
 });
 
 export default function TeacherDashboard() {
+  const { isDark } = useTheme();
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MainTab>("questions");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -558,7 +560,7 @@ export default function TeacherDashboard() {
   const filteredTopicsForSelect = topics.filter((t) => t.subject_id === selectedSubjectId);
   const assignTopicsFiltered = topics.filter((t) => t.subject_id === assignSubjectId);
 
-  if (loading) return <div className="td-loading">Завантаження контенту...</div>;
+  if (loading) return <div className={`td-loading${isDark ? "" : " light"}`}>Завантаження контенту...</div>;
 
   return (
     <>
@@ -569,7 +571,7 @@ export default function TeacherDashboard() {
         loading={studentsModalLoading}
         onClose={() => setStudentsModalOpen(false)}
       />
-      <div className="teacher-dashboard">
+      <div className={`teacher-dashboard${isDark ? "" : " light"}`}>
         <div className="td-inner">
           <div className="td-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "15px" }}>
             <h1>👨‍🏫 Панель викладача Examix</h1>

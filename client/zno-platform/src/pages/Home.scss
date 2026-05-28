@@ -1,5 +1,5 @@
 @use "sass:color";
-@use '../styles//variables';
+@use '../styles/variables';
 
 #root {
   width: 100%;
@@ -19,210 +19,283 @@ body {
   width: 100%;
 }
 
-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  border-bottom: 1px solid #f0effe;
-  text-align: center;
-}
+.home-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #111111;
+  transition: background-color 0.3s ease, color 0.3s ease;
 
-.headerLinks {
-  display: flex;
-  gap: 20px;
-}
-
-.headerLinks a {
-  font-size: 18px;
-  color: #555;
-  text-decoration: none;
-  font-size: 103%;
-}
-
-.headerLinks a:hover {
-  font-size: 18px;
-  color: #313131;
-  text-decoration: none;
-  font-size: 103%;
-  cursor: pointer;
-}
-
-.authButtons {
-  display: flex;
-  gap: 6%;
-  margin: 0 auto;
-}
-
-.authButtons {
-  font-size: 12pt;
-  border: none;
-  border-radius: 5px;
-  height: 4vh;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.authBtn {
-  display: inline-flex;    
-  align-items: center; 
-  justify-content: center;
-  border-radius: 5px;
-  text-decoration: none;
-  color: #111;
-  transition: 0.2s;
-  background-color: variables.$auth-btn-bg;
-  height: 4vh;
-}
-
-#login {
-  width: 15vw;
-}
-
-#signup {
-  width: 30vw;
-}
-
-#login:hover , #signup:hover {
-  background-color: color.adjust(variables.$auth-btn-bg, $lightness: -20%);
-  color: #fafafa;
-}
-
-#login:active , #signup:active {
-  background-color: color.adjust(variables.$auth-btn-bg, $lightness: -30%);
-  color: #fafafa;
-}
-
-h1 {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #3649a4;
-}
-
-.startBtn {
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: 1.5px solid #ddd;
-  background: #fff;
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 500;
-  padding: 10px 20px;
-  max-width: 300px;
-  margin: 0 auto;
-  margin-top: 3%;
-  background-color: variables.$start-btn-bg;
-  color: #ffffff;
-  font-size: larger;
-  font-weight: 600;
-}
-
-.startBtn:hover {
-  background-color: color.adjust(variables.$start-btn-bg, $lightness: -20%);
-}
-
-h2 {
-  margin-bottom: 10%;
-  font-size: 20pt;
-  font-weight: 700;
-  color: #00157e;
-}
-
-.facts {
-  display: flex;
-  gap: 24px;
-  margin: 10% auto;
-}
-
-.factsNumber {
-  font-size: 24px;
-  font-weight: 700;
-  color: #6C47FF;
-}
-
-.factsDescr {
-  font-size: 11px;
-  color: #aaa;
-  text-transform: uppercase;
-}
-
-.featuresGrid {
-  display: grid;
-  grid-template-columns: 1fr; 
-  gap: 16px;
-  padding: 20px;
-}
-
-.feature {
-  padding: 20px;
-  border-radius: 14px;
-  border: 1.5px solid #f0effe;
-  background: #faf9ff;
-}
-
-.featureImg {
-  width: 70px;
-  height: 70px;
-  object-fit: cover;
-}
-
-#checkFeature {
-  width: 125px;
-  height: 125px;
-  margin: -30px auto;
-}
-
-@media (min-width: 768px) {
   header {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 14px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-bottom: 1px solid #f0effe;
+    text-align: center;
+    transition: border-color 0.3s ease;
   }
 
-  h1 {
-    font-size: 42px;
+  .headerLinks {
+    display: flex;
+    gap: 20px;
+
+    a {
+      font-size: 18px;
+      color: #555;
+      text-decoration: none;
+      font-size: 103%;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: #313131;
+        cursor: pointer;
+      }
+    }
   }
 
   .authButtons {
-    margin-right: 0;
+    display: flex;
+    gap: 6%;
+    margin: 0 auto;
+    font-size: 12pt;
+    border: none;
+    border-radius: 5px;
+    height: 4vh;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
   }
 
-  .featuresGrid {
-    grid-template-columns: repeat(3, 1fr);
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 40px;
+  .authBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #111;
+    transition: 0.2s;
+    background-color: variables.$auth-btn-bg;
+    height: 4vh;
+  }
+
+  #login { width: 15vw; }
+  #signup { width: 30vw; }
+
+  #login:hover, #signup:hover {
+    background-color: color.adjust(variables.$auth-btn-bg, $lightness: -20%);
+    color: #fafafa;
+  }
+
+  #login:active, #signup:active {
+    background-color: color.adjust(variables.$auth-btn-bg, $lightness: -30%);
+    color: #fafafa;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #3649a4;
+    transition: color 0.3s ease;
+  }
+
+  p {
+    transition: color 0.3s ease;
   }
 
   .startBtn {
-    width: auto;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1.5px solid #ddd;
+    cursor: pointer;
+    transition: 0.2s;
+    max-width: 300px;
+    margin: 0 auto;
+    margin-top: 3%;
+    background-color: variables.$start-btn-bg;
+    color: #ffffff;
+    font-size: larger;
+    font-weight: 600;
+
+    &:hover {
+      background-color: color.adjust(variables.$start-btn-bg, $lightness: -20%);
+    }
+  }
+
+  h2 {
+    margin-bottom: 10%;
+    font-size: 20pt;
+    font-weight: 700;
+    color: #00157e;
+    transition: color 0.3s ease;
   }
 
   .facts {
-    flex-direction: row;
-    justify-content: center;
+    display: flex;
+    gap: 24px;
+    margin: 10% auto;
   }
-  .facts > div {
-    padding: 0 30px;
-    border-right: 1px solid #e5e0ff;
+
+  .factsNumber {
+    font-size: 24px;
+    font-weight: 700;
+    color: #6C47FF;
   }
-  .facts > div:last-child {
-    border-right: none;
+
+  .factsDescr {
+    font-size: 11px;
+    color: #aaa;
+    text-transform: uppercase;
+  }
+
+  .featuresGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .feature {
+    padding: 20px;
+    border-radius: 14px;
+    border: 1.5px solid #f0effe;
+    background: #faf9ff;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .featureName {
+    transition: color 0.3s ease;
+  }
+
+  .featureDescr {
+    transition: color 0.3s ease;
+  }
+
+  .featureImg {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+  }
+
+  #checkFeature {
+    width: 125px;
+    height: 125px;
+    margin: -30px auto;
+  }
+
+  &.dark {
+    background-color: #121214;  
+    color: #e2e8f0;           
+
+    header {
+      border-bottom: 1px solid #222226;
+    }
+
+    .headerLinks a {
+      color: #94a3b8;
+
+      &:hover {
+        color: #f1f5f9;
+      }
+    }
+
+    .authBtn {
+      background-color: color.adjust(variables.$auth-btn-bg, $saturation: -20%);
+      color: #133966;
+
+      &:hover {
+        background-color: color.adjust(variables.$auth-btn-bg, $lightness: -50%);
+      }
+    }
+
+    h1 {
+      color: #5c72e6; 
+    }
+
+    h2 {
+      color: #4c63e6;
+    }
+
+    .facts > div {
+      border-right-color: #222226;
+    }
+
+    .factsDescr {
+      color: #64748b;
+    }
+
+    .feature {
+      background: #1a1a1e;
+      border: 1.5px solid #222226;
+      
+      .featureName {
+        color: #ffffff;
+      }
+      .featureDescr {
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  .home-page {
+    header {
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 14px 40px;
+    }
+
+    h1 {
+      font-size: 42px;
+    }
+
+    .authButtons {
+      margin-right: 0;
+    }
+
+    .featuresGrid {
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    .startBtn {
+      width: auto;
+      border: none;
+    }
+
+    .facts {
+      flex-direction: row;
+      justify-content: center;
+
+      & > div {
+        padding: 0 30px;
+        border-right: 1px solid #e5e0ff;
+      }
+
+      & > div:last-child {
+        border-right: none;
+      }
+    }
   }
 }
 
 @media (min-width: 900px) {
-  .authButtons {
-    width: 32vw;
+  .home-page {
+    .authButtons {
+      width: 32vw;
+    }
   }
 }
 
 @media (min-width: 1100px) {
-  .authButtons {
-    width: 22vw;
+  .home-page {
+    .authButtons {
+      width: 22vw;
+    }
   }
 }
-

@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import authService from "../services/authService";
 import googleIcon from "../assets/auth/google-logo.png";
 import { supabase } from "../services/supabaseClient";
+import { useTheme } from "../context/ThemeContext";
 import "./Auth.scss";
 
 function BannedModal({ onClose }: { onClose: () => void }) {
@@ -45,6 +46,7 @@ function BannedModal({ onClose }: { onClose: () => void }) {
 
 function Login() {
   const { checkAuth } = useAuth();
+  const { isDark } = useTheme();
 
   const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
@@ -73,17 +75,14 @@ function Login() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
       const response = await authService.login({
-        email: formData.email.trim(),
+        email: formData.email.trim().toLowerCase(), 
         password: formData.password,
       });
-
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       await checkAuth();
-
     } catch (err: any) {
       if (err.message?.toLowerCase().includes("заблокован")) {
         setShowBannedModal(true);
@@ -96,10 +95,9 @@ function Login() {
   };
 
   return (
-    <div className="auth-container">
+    <div className={`auth-container ${isDark ? "dark" : ""}`}>
       {showBannedModal && <BannedModal onClose={() => setShowBannedModal(false)} />}
-
-      <div className="auth-card">
+      <div className={`auth-card ${isDark ? "dark" : ""}`}>
         <div className="auth-header">
           <div className="logo-placeholder">
             <div className="logo-icon">

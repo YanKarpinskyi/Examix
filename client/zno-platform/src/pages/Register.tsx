@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import googleIcon from "../assets/auth/google-logo.png";
 import { supabase } from "../services/supabaseClient";
+import { useTheme } from "../context/ThemeContext";
 import "./Auth.scss";
 
 interface GroupOption {
@@ -14,6 +15,7 @@ interface GroupOption {
 
 function Register() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allGroups, setAllGroups] = useState<GroupOption[]>([]);
@@ -63,18 +65,12 @@ function Register() {
   const handleFacultyChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const faculty = e.target.value;
     setSelectedFaculty(faculty);
-    setFormData((prev) => ({
-      ...prev,
-      groupId: "",
-    }));
+    setFormData((prev) => ({ ...prev, groupId: "" }));
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -85,12 +81,10 @@ function Register() {
       setError("Паролі не збігаються");
       return;
     }
-
     if (formData.password.length < 8) {
       setError("Пароль має містити мінімум 8 символів");
       return;
     }
-
     if (!formData.groupId) {
       setError("Оберіть навчальну групу");
       return;
@@ -104,7 +98,7 @@ function Register() {
         email: formData.email.trim(),
         password: formData.password,
         groupId: formData.groupId,
-      } as any); 
+      } as any);
 
       if (response && response.token) {
         localStorage.setItem("token", response.token);
@@ -112,7 +106,6 @@ function Register() {
       }
 
       alert("Реєстрація успішна!");
-      
       navigate("/login");
     } catch (err: any) {
       console.error("❌ Помилка реєстрації на фронтенді:", err);
@@ -123,8 +116,8 @@ function Register() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
+    <div className={`auth-container${isDark ? " dark" : ""}`}>
+      <div className={`auth-card${isDark ? " dark" : ""}`}>
         <div className="auth-header">
           <div className="logo-icon">
             <img src="/favicon.svg" alt="logo" width={35} style={{ borderRadius: "10px" }} />
@@ -133,7 +126,7 @@ function Register() {
         </div>
 
         <div className="auth-titles">
-          <h1>Створити акаунт</h1>
+          <h1 style={{ color: isDark ? "var(--td-text)" : "#17365f" }}>Створити акаунт</h1>
           <p>Приєднуйся до спільноти Examix</p>
         </div>
 
@@ -164,9 +157,7 @@ function Register() {
             <select name="faculty" value={selectedFaculty} onChange={handleFacultyChange} required className="auth-select">
               <option value=""> — Оберіть факультет — </option>
               {faculties.map((faculty) => (
-                <option key={faculty} value={faculty}>
-                  {faculty}
-                </option>
+                <option key={faculty} value={faculty}>{faculty}</option>
               ))}
             </select>
           </div>
@@ -178,9 +169,7 @@ function Register() {
                 {selectedFaculty ? "— Оберіть вашу групу —" : "Спочатку оберіть факультет"}
               </option>
               {filteredGroups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
+                <option key={group.id} value={group.id}>{group.name}</option>
               ))}
             </select>
           </div>
